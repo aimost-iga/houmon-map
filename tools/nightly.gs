@@ -7,20 +7,16 @@
  *  3. 書き写しを確かめてから、その日の活動記録をアプリから消す
  * 建物・部屋の記録（b）や修正（typ / netx / pos）には一切さわらない。
  *
- * 置き場所：スプレッドシート「訪問活動記録」の 拡張機能 → Apps Script
+ * 置き場所：Apps Script のプロジェクト「訪問マップ 毎晩の書き写し」（スプレッドシートはIDで開く）
  */
 const PROJECT = 'aimost-houmon-map';
 const FS = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents';
 const RES = { away: '不在', ihng: 'インターホンNG', fng: '対面NG', again: '再訪', got: '獲得', vac: '未入居' };
 const TY = { S: '単身', M: '単身・セミ', F: 'ファミリー' };
 const NET = { free: '無料ネットあり', paid: '個別契約（有料）' };
-
-function onOpen() {
-  SpreadsheetApp.getUi().createMenu('訪問マップ')
-    .addItem('今すぐ書き写す（前日まで）', 'nightly')
-    .addItem('毎晩の自動実行をセットする', 'setup')
-    .addToUi();
-}
+// スプレッドシート「訪問活動記録」
+const SHEET_ID = '1m4KTzUK-rpDyYzSfR1jRPiyEEdBfSTWNDHIBLoGyeAQ';
+function SS_() { return SpreadsheetApp.openById(SHEET_ID); }
 
 /** 毎晩0時15分の自動実行を1つだけ作る */
 function setup() {
@@ -108,7 +104,7 @@ function run_(todayOverride) {
     const n = getDoc_('netx/' + cc); if (n) Object.assign(NETO, n);
   });
 
-  const sh = SpreadsheetApp.getActive().getSheetByName('明細');
+  const sh = SS_().getSheetByName('明細');
   const have = new Set(keysOf_(sh));
 
   // 行を作る（不在は まとめる）
@@ -176,7 +172,7 @@ function keysOf_(sh) {
   return sh.getRange(2, 18, n - 1, 1).getValues().map(r => String(r[0]).replace(/^'/, '')).filter(Boolean);
 }
 function log_(msg) {
-  const ss = SpreadsheetApp.getActive();
+  const ss = SS_();
   let sh = ss.getSheetByName('実行記録');
   if (!sh) { sh = ss.insertSheet('実行記録'); sh.appendRow(['日時', '内容']); }
   sh.appendRow([Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm'), msg]);
