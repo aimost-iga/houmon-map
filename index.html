@@ -989,6 +989,51 @@ details.pref .cities{padding:6px 0 8px}
   .seg button{padding:4px 4px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@media (max-width:760px){
+  /* 下に固定したメニュー（親指で押せる位置・文字つき） */
+  #app{box-sizing:border-box;padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:1300;margin:0;gap:0;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 14px rgba(20,40,45,.08)}
+  .tb{flex:1 1 0;min-width:0;flex-direction:column;gap:2px;padding:6px 0 4px;border:0;border-radius:10px;background:none;font-size:10.5px;line-height:1.1;position:relative;color:var(--ink2)}
+  .tb svg{width:21px;height:21px}
+  .tb .lb{display:block!important;white-space:nowrap}
+  .tb[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+  .tb .cnt{position:absolute;top:2px;left:calc(50% + 6px);font-size:10px;padding:0 5px}
+  .tb[aria-pressed="true"] .cnt{background:var(--accent);color:var(--accent-ink)}
+  /* 上の帯は細く。さがす画面では消して、広く使う */
+  .top{padding:6px 10px}
+  .brand b{font-size:15px}
+  .homeMode .top{padding:0;border:0;min-height:0}
+  .homeMode .brand{display:none}
+  /* 建物の画面は全面に */
+  .sheet{top:0;max-height:none;border-radius:0;border-top:0}
+  .panel{width:100%}
+  /* 文字入力で画面が勝手に拡大しないように（iPhone） */
+  input,select,textarea{font-size:16px!important}
+  select{padding:8px 10px!important;border-radius:8px}
+  /* 押しやすい大きさ */
+  .chk{min-height:40px;display:inline-flex;align-items:center;gap:8px}
+  .chk input{width:20px;height:20px}
+  .btn{min-height:40px}
+  .x{width:40px;height:40px}
+  /* 部屋の登録：「登録する」ボタンを常に下に見せる */
+  .rform{max-height:92%}
+  .rform .btn.primary{position:sticky;bottom:0;z-index:2;box-shadow:0 -6px 12px var(--card)}
+  .res button{min-height:56px;font-size:15px}
+  /* さがす画面 */
+  .home-in{padding-top:10px}
+  .hstats{gap:6px}
+  .hstats > div{padding:8px 4px}
+  .hstats span{font-size:11px}
+  .hfilt{display:none}
+  .home.filtOpen .hfilt{display:flex}
+  .hfiltBtn{display:flex!important}
+  .lrow{min-height:56px}
+  .gmap,.addr{width:42px;height:42px}
+  .legend{bottom:8px}
+}
+.hfiltBtn{display:none;width:100%;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:14px;margin:4px 0}
+.hfiltBtn b{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -2763,7 +2808,9 @@ function renderCity(body){
   const sel = el('select', { id: 'homeSort', onchange: e => { homeSort = e.target.value; store.set('homeSort', homeSort); renderHome(); } },
     [['addr', '住所順（町名・番地）'], ...(HERE ? [['near', '現在地から近い順']] : []), ['stale', '放置が長い順（未訪問が先）'], ['fresh', '今月の新着・変更を先に'], ['intro', '導入が新しい順'], ['units', '戸数が多い順']].map(([v, tx]) => el('option', { value: v, selected: v === homeSort }, tx)));
   const cand = arr.filter(b => !route.includes(b.id) && !b.x && !b.f.includes('hanbai_ng'));
-  body.append(el('div', { class: 'ctl' }, el('label', { for: 'homeSort', text: '並び順' }), sel,
+  { const nOn = (homeSort !== 'addr' ? 1 : 0) + (homeTy ? 1 : 0) + (homeNf ? 1 : 0) + (homeOnlyNew ? 1 : 0) + (homeHideNG ? 1 : 0);
+    body.append(el('button', { class: 'hfiltBtn', onclick: () => { $('#home').classList.toggle('filtOpen'); } }, el('span', null, '並び順・しぼりこみ', nOn ? el('b', { text: `（${nOn}つ使用中）` }) : null), el('span', { class: 'muted', text: '開く／閉じる' }))); }
+  body.append(el('div', { class: 'ctl hfilt' }, el('label', { for: 'homeSort', text: '並び順' }), sel,
     el('span', { style: 'display:inline-flex;gap:6px;align-items:center' }, el('label', { for: 'homeTy', text: '間取り' }), el('select', { id: 'homeTy', onchange: e => { homeTy = e.target.value; store.set('homeTy', homeTy); renderHome(); } }, TY_OPTS.map(([v, tx]) => { const n = v ? all.filter(b => tyMatch(b, v)).length : all.length; return el('option', { value: v, selected: v === homeTy }, `${tx}（${n}）`); }))),
     el('span', { style: 'display:inline-flex;gap:6px;align-items:center' }, el('label', { for: 'homeNf', text: 'ネット' }), el('select', { id: 'homeNf', onchange: e => { homeNf = e.target.value; store.set('homeNf', homeNf); renderHome(); } }, NET_OPTS.map(([v, tx]) => { const n = v ? all.filter(b => netMatch(b, v)).length : all.length; return el('option', { value: v, selected: v === homeNf }, `${tx}（${n}）`); }))),
     el('label', { class: 'chk', for: 'hOnlyNew' }, el('input', { type: 'checkbox', id: 'hOnlyNew', checked: homeOnlyNew, onchange: e => { homeOnlyNew = e.target.checked; renderHome(); } }), '未訪問だけ'),
@@ -2795,6 +2842,7 @@ function renderCity(body){
 // ---------- boot ----------
 let META = {};
 const ymLabel = s => { if (!s) return ''; const m = /^(\d{4})-(\d{2})$/.exec(s); return m ? `${+m[1]}年${+m[2]}月` : s; };
+if (matchMedia('(max-width:760px)').matches) { const h = document.getElementById('hq'); if (h) h.placeholder = '市区町村・町名・建物名でさがす'; const q = document.getElementById('q'); if (q) q.placeholder = '駅・町名・建物名でさがす'; }
 function fbReady(){ return window.FB ? Promise.resolve(window.FB) : new Promise(r => window.addEventListener('fb-ready', () => r(window.FB), { once: true })); }
 function showGate(kind, email){
   const g = $('#gate'), m = $('#gateMsg'); g.hidden = false; m.textContent = ''; $('#loading').hidden = true;
