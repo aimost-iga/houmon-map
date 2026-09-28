@@ -3,8 +3,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import {
-  initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, collection, query, where, getDoc, getDocs, getDocsFromCache, setDoc, updateDoc, deleteDoc,
+  initializeFirestore,
+  doc, collection, query, where, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   onSnapshot, writeBatch, FieldPath, documentId
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -21,9 +21,8 @@ const OWNER = 'igarashi@aimost.co.jp';
 
 const app = initializeApp(CONFIG);
 const auth = getAuth(app);
-let fs;
-try { fs = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
-catch (e) { fs = initializeFirestore(app, {}); }
+// 手元への保存はアプリ側（建物リストの控え）で行う。Firestore 自体は起動の速いメモリ保存にする（スマホで重くならないように）
+const fs = initializeFirestore(app, {});
 
 const isPlain = v => v && typeof v === 'object' && !Array.isArray(v);
 const clean = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
@@ -132,34 +131,35 @@ const user = {
   search: async () => []
 };
 
-// 建物リスト（月1回入れ替え）。版が変わっていなければ手元の控えを使い、読み込み回数を減らす。
+// 建物リスト（月1回入れ替え）。スマホの中に控え（IndexedDB）を持ち、版が同じなら通信せずにすぐ開く。
+const IDB_NAME = 'houmon-map', IDB_STORE = 'kv';
+function idb_() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet_(k) { try { const d = await idb_(); return await new Promise(r => { const q = d.transaction(IDB_STORE).objectStore(IDB_STORE).get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); } catch (e) { return null; } }
+async function idbSet_(k, v) { try { const d = await idb_(); await new Promise(r => { const t = d.transaction(IDB_STORE, 'readwrite'); t.objectStore(IDB_STORE).put(v, k); t.oncomplete = r; t.onerror = r; }); } catch (e) {} }
 async function loadMaster(onProgress) {
   let meta;
   try { meta = (await getDoc(ref('meta/master'))).data(); } catch (e) { throw err(e); }
   if (!meta) return { meta: null, buildings: [] };
   const want = isStaff() ? (meta.ccs || []) : myAreas().filter(cc => (meta.ccs || []).includes(cc));
-  const key = 'hm_masterV';
-  let docs = null;
-  try {
-    if (localStorage.getItem(key) === String(meta.v)) {
-      const q = await getDocsFromCache(collection(fs, 'bld'));
-      const have = new Map(q.docs.map(d => [d.id, d.data()]));
-      if (want.every(cc => have.has(cc))) docs = want.map(cc => have.get(cc));
-    }
-  } catch (e) {}
-  if (!docs) {
-    docs = []; let n = 0;
-    const chunks = []; for (let i = 0; i < want.length; i += 10) chunks.push(want.slice(i, i + 10));
-    for (const ch of chunks) {
-      const q = await getDocs(query(collection(fs, 'bld'), where(documentId(), 'in', ch)));
-      q.docs.forEach(d => docs.push(d.data()));
-      n += ch.length; onProgress && onProgress(n, want.length);
-    }
-    try { localStorage.setItem(key, String(meta.v)); } catch (e) {}
-  }
+  const sig = meta.v + ':' + want.join(',');
+  const cached = await idbGet_('master');
+  if (cached && cached.sig === sig && Array.isArray(cached.buildings)) return { meta, buildings: cached.buildings };
+  // 10市区町村ずつの問い合わせを、まとめて同時に出す
+  const chunks = []; for (let i = 0; i < want.length; i += 10) chunks.push(want.slice(i, i + 10));
+  let n = 0;
+  const parts = await Promise.all(chunks.map(ch => getDocs(query(collection(fs, 'bld'), where(documentId(), 'in', ch))).then(q => {
+    n += ch.length; onProgress && onProgress(n, want.length); return q.docs.map(d => d.data());
+  })));
   const buildings = [];
   // 建物は市区町村ごとに文字列（j）でしまってある（入れ子の配列を保存できないため）
-  for (const d of docs) for (const b of (d.b || (d.j ? JSON.parse(d.j) : []))) buildings.push(b);
+  for (const d of parts.flat()) for (const b of (d.b || (d.j ? JSON.parse(d.j) : []))) buildings.push(b);
+  idbSet_('master', { sig, buildings });
   return { meta, buildings };
 }
 const noteCache = {};
@@ -197,7 +197,7 @@ const admin = {
     const items = JSON.parse(txt);
     if (!Array.isArray(items) || !items.every(x => x && typeof x.path === 'string' && /^(meta|bld|note|b|sum|typ|netx|pos)\/[A-Za-z0-9_\-]+$/.test(x.path) && x.data && typeof x.data === 'object')) throw new Error('取り込みファイルの形が正しくありません');
     const n = await admin.put(items, onProgress);
-    try { localStorage.removeItem('hm_masterV'); } catch (e) {}
+    await idbSet_('master', null);
     return n;
   },
   putGz: async (b64) => {
@@ -222,7 +222,7 @@ function whenSignedIn() {
       if (!u) { resolve({ state: 'out' }); return; }
       const me = await resolveMe(u);
       if (!me) { resolve({ state: 'denied', email: u.email }); return; }
-      ME = me; await loadNames();
+      ME = me; loadNames();
       resolve({ state: 'in', me });
     });
   });
