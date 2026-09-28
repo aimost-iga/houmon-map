@@ -1496,6 +1496,13 @@ function accountBox(){
     m.role === 'contractor' ? el('div', { class: 'muted', text: '担当エリア：' + (m.areas || []).map(cc => (CITY[cc] && CITY[cc].short) || cc).join('、') }) : null);
 }
 const ROLE_L = { admin: '管理者', staff: '社員', contractor: '業務委託' };
+// 招待メール：Gmail の作成画面を、宛先・件名・本文を入れた状態で開く（送信は自分で押す）
+function inviteMail(u){
+  const url = location.origin + location.pathname;
+  const body = `${u.name ? u.name + 'さん\n\n' : ''}訪問マップを使えるように登録しました。\n\n下のアドレスを開いて「Googleでログイン」を押し、このメールが届いたアドレス（${u.email}）でログインしてください。\n${url}\n\nスマホは、開いたあと「ホーム画面に追加」しておくと、アプリのように使えて便利です。`;
+  const g = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(u.email) + '&su=' + encodeURIComponent('訪問マップの招待') + '&body=' + encodeURIComponent(body);
+  window.open(g, '_blank', 'noopener');
+}
 async function usersSection(){
   const sec = el('section', { class: 'sec' }, el('h3', { text: 'アプリを使える人（管理者だけが変更できます）' }));
   const list = el('div'); sec.append(list);
@@ -1513,6 +1520,7 @@ async function usersSection(){
       u.role === 'contractor' ? el('div', { class: 'muted', text: '担当エリア：' + ((u.areas || []).map(cc => (CITY[cc] && CITY[cc].short) || cc).join('、') || 'なし') }) : null,
       el('div', { class: 'ctl', style: 'gap:6px' },
         el('button', { class: 'btn', onclick: () => edit(u) }, '変更'),
+        el('button', { class: 'btn', onclick: () => inviteMail(u) }, '招待メール'),
         el('button', { class: 'btn', onclick: async e => { if (e.target.dataset.arm !== '1') { e.target.dataset.arm = '1'; e.target.textContent = 'もう一度押すと外します'; return; } try { await FB.admin.remove(u.email); toast(`${u.email} を外しました。記録は残ります`); draw(); } catch(err){ toast('変更できませんでした'); } } }, '外す')))));
     list.append(el('button', { class: 'btn primary', style: 'margin-top:8px', onclick: () => edit(null) }, '＋ 人を追加'));
   };
@@ -1540,7 +1548,7 @@ async function usersSection(){
           const email = f.email.trim().toLowerCase();
           if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast('アドレスの形が正しくありません'); return; }
           if (f.role === 'contractor' && !f.areas.length) { toast('業務委託の人には担当エリアを1つ以上入れてください'); return; }
-          try { await FB.admin.save(email, { name: f.name.trim(), role: f.role, areas: f.role === 'contractor' ? f.areas : [], vac: f.vac, active: true, by: me.id, at: Date.now() }); toast('保存しました。この人はGoogleでログインすれば使えます'); box.remove(); draw(); }
+          try { await FB.admin.save(email, { name: f.name.trim(), role: f.role, areas: f.role === 'contractor' ? f.areas : [], vac: f.vac, active: true, by: me.id, at: Date.now() }); toast('保存しました。招待メールの画面を開きます'); box.remove(); draw(); if (!u) inviteMail({ email, name: f.name.trim() }); }
           catch(e){ toast('保存できませんでした'); }
         } }, '保存'),
         el('button', { class: 'btn', onclick: () => box.remove() }, 'やめる')));
