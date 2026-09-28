@@ -132,7 +132,7 @@ rep("""const canVac = () => isOwner || !!(me.id && PERM[me.id]);""",
 # ---------- 設定画面：保存の残り → ログイン中の人 / 使える人の管理 ----------
 rep("""  if (db) body.append(usageBox());""", """  if (db) body.append(accountBox());""")
 rep("""  if (isOwner && db) { const holder = el('div'); body.append(holder); permSection().then(s => holder.append(s)); }""",
-    """  if (isOwner && db) { const holder = el('div'); body.append(holder); usersSection().then(s => holder.append(s)); }""")
+    """  if (isOwner && db) { const holder = el('div'); body.append(holder); usersSection().then(s => { holder.append(s); holder.append(importSection()); }); }""")
 rep("""function watchPerm(){""", r"""function accountBox(){
   const m = FB.me() || {};
   const roleL = { admin: '管理者', staff: '社員', contractor: '業務委託' }[m.role] || '';
@@ -196,6 +196,19 @@ async function usersSection(){
   await draw();
   sec.append(el('div', { class: 'muted', style: 'margin-top:6px', text: '「外す」とその日から入れなくなります。その人が付けた記録は会社のデータとして残ります。' }));
   return sec;
+}
+function importSection(){
+  const st = el('div', { class: 'muted' });
+  const inp = el('input', { type: 'file', accept: '.gz,.json', style: 'max-width:100%' });
+  inp.addEventListener('change', async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    inp.disabled = true; st.textContent = '取り込んでいます…';
+    try { const n = await FB.admin.putFile(f, (a, b) => { st.textContent = `取り込んでいます…（${a}/${b}）`; }); st.textContent = `${n}件を取り込みました。ページを開き直すと新しい建物リストになります。`; toast('取り込みが終わりました'); }
+    catch(e){ st.textContent = '取り込めませんでした：' + (e && e.message || ''); }
+    inp.disabled = false; inp.value = '';
+  });
+  return el('section', { class: 'sec' }, el('h3', { text: '建物リストの取り込み（管理者）' }),
+    el('div', { class: 'muted', text: '毎月、Claudeが作った取り込みファイル（houmon_import_….json.gz）をここで選ぶと、建物リストが新しくなります。' }), inp, st);
 }
 function watchPerm(){""")
 rep("""function usageBanner(){

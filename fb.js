@@ -165,7 +165,7 @@ const admin = {
   save: async (email, data) => { await setDoc(ref('users/' + email.toLowerCase()), clean(data)); await loadNames(); },
   remove: async email => { await deleteDoc(ref('users/' + email.toLowerCase())); await loadNames(); },
   // データの取り込み（Claude が使う）：[{path, data}] をまとめて書く
-  put: async (items) => {
+  put: async (items, onProgress) => {
     let n = 0;
     for (let i = 0; i < items.length;) {
       const batch = writeBatch(fs); let size = 0, cnt = 0;
@@ -174,8 +174,20 @@ const admin = {
         if (cnt && size + s > 8e6) break;
         batch.set(ref(items[i].path), items[i].data); size += s; cnt++; i++;
       }
-      await batch.commit(); n += cnt;
+      await batch.commit(); n += cnt; onProgress && onProgress(n, items.length);
     }
+    return n;
+  },
+  // 取り込みファイル（.json または .json.gz）を読んで書き込む
+  putFile: async (file, onProgress) => {
+    let buf = new Uint8Array(await file.arrayBuffer());
+    let txt;
+    if (buf[0] === 0x1f && buf[1] === 0x8b) txt = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    else txt = new TextDecoder().decode(buf);
+    const items = JSON.parse(txt);
+    if (!Array.isArray(items) || !items.every(x => x && typeof x.path === 'string' && /^(meta|bld|note|b|sum|typ|netx|pos)\/[A-Za-z0-9_\-]+$/.test(x.path) && x.data && typeof x.data === 'object')) throw new Error('取り込みファイルの形が正しくありません');
+    const n = await admin.put(items, onProgress);
+    try { localStorage.removeItem('hm_masterV'); } catch (e) {}
     return n;
   },
   putGz: async (b64) => {

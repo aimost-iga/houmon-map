@@ -1551,6 +1551,19 @@ async function usersSection(){
   sec.append(el('div', { class: 'muted', style: 'margin-top:6px', text: '「外す」とその日から入れなくなります。その人が付けた記録は会社のデータとして残ります。' }));
   return sec;
 }
+function importSection(){
+  const st = el('div', { class: 'muted' });
+  const inp = el('input', { type: 'file', accept: '.gz,.json', style: 'max-width:100%' });
+  inp.addEventListener('change', async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    inp.disabled = true; st.textContent = '取り込んでいます…';
+    try { const n = await FB.admin.putFile(f, (a, b) => { st.textContent = `取り込んでいます…（${a}/${b}）`; }); st.textContent = `${n}件を取り込みました。ページを開き直すと新しい建物リストになります。`; toast('取り込みが終わりました'); }
+    catch(e){ st.textContent = '取り込めませんでした：' + (e && e.message || ''); }
+    inp.disabled = false; inp.value = '';
+  });
+  return el('section', { class: 'sec' }, el('h3', { text: '建物リストの取り込み（管理者）' }),
+    el('div', { class: 'muted', text: '毎月、Claudeが作った取り込みファイル（houmon_import_….json.gz）をここで選ぶと、建物リストが新しくなります。' }), inp, st);
+}
 function watchPerm(){
   if (!db || permUnsub) return;
   permUnsub = db.doc('data/perm/vac/list').onSnapshot(s => { PERM = (s.exists && s.data().ids) || {}; if (panelKind === 'set') renderSet(); if (panelKind === 'vac') renderVac(); updateVacUI(); }, () => {});
@@ -2618,7 +2631,7 @@ function renderSet(){
     el('button', { class: 'btn', style: 'margin-top:6px', onclick: () => openPanel('vac') }, '未入居リストを開く')));
   if (db) body.append(accountBox());
   body.append(el('button', { class: 'btn', onclick: () => openPanel('upd') }, 'リスト更新の変化を見る'));
-  if (isOwner && db) { const holder = el('div'); body.append(holder); usersSection().then(s => holder.append(s)); }
+  if (isOwner && db) { const holder = el('div'); body.append(holder); usersSection().then(s => { holder.append(s); holder.append(importSection()); }); }
   body.append(el('div', { class: 'note-box' },
     el('div', null, `取り込んだリスト：${META.source}`), el('div', null, `${ymLabel(META.month)}版・${B.filter(b => !b.x).length.toLocaleString()}棟（関東＋静岡）`),
     el('div', { style: 'margin-top:6px' }, '地図の位置は国土地理院の住所検索で番地まで合わせています。番地が見つからなかった一部の建物だけ、町の中のおおよその位置です。'), el('div', { style: 'margin-top:6px' }, '間取りの予測は、国土地理院の建物の形と、東京23区は3D都市モデル（PLATEAU）の建物の高さから、1戸あたりの広さを見積もったものです。目安として使い、現場で違ったら建物の画面から直してください。')));
