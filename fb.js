@@ -68,7 +68,15 @@ function docApi(path) {
       const pairs = flatten(path, patch);
       if (!pairs.length) return;
       const args = []; for (const [fp, v] of pairs) args.push(fp, v);
-      try { await updateDoc(r, ...args); } catch (e) { throw err(e); }
+      try { await updateDoc(r, ...args); }
+      catch (e) {
+        // まだ無い文書への更新は、ルール上「許可なし」で返ってくることがある。無いなら「作る」に回す
+        if (e && e.code === 'permission-denied') {
+          let exists = true; try { exists = (await getDoc(r)).exists(); } catch (e2) {}
+          if (!exists) { const x = new Error('not found'); x.code = 'invalid_argument'; throw x; }
+        }
+        throw err(e);
+      }
     },
     delete: async () => { try { await deleteDoc(r); } catch (e) { throw err(e); } },
     onSnapshot: (next, onErr) => onSnapshot(r, s => next(snapOf(s)), e => onErr && onErr(err(e)))
