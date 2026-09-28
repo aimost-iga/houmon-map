@@ -1,0 +1,57 @@
+rules_version = '2';
+// 訪問マップの「入れる人のルール」
+// ・入れるのは users に登録された人（と最初の管理者）だけ
+// ・業務委託（contractor）は、割り当てたエリア（市区町村コード）の建物だけ見られる
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function em() { return request.auth.token.email.lower(); }
+    function owner() { return signedIn() && em() == 'igarashi@aimost.co.jp'; }
+    function udoc() { return /databases/$(database)/documents/users/$(em()); }
+    function registered() { return signedIn() && exists(udoc()) && get(udoc()).data.get('active', true) == true; }
+    function role() { return get(udoc()).data.get('role', 'staff'); }
+    function isUser() { return owner() || registered(); }
+    function isAdmin() { return owner() || (registered() && role() == 'admin'); }
+    function isStaff() { return owner() || (registered() && role() in ['admin', 'staff']); }
+    function canCity(cc) { return isStaff() || (registered() && role() == 'contractor' && cc in get(udoc()).data.get('areas', [])); }
+
+    // 使える人の一覧
+    match /users/{email} {
+      allow read: if isStaff() || (signedIn() && em() == email);
+      allow write: if isAdmin();
+    }
+    // 建物リストの版などの情報
+    match /meta/{id} {
+      allow read: if isUser();
+      allow write: if isAdmin();
+    }
+    // 建物リスト（ソニーのリスト）と特記事項：市区町村ごと
+    match /bld/{cc} {
+      allow read: if canCity(cc);
+      allow write: if isAdmin();
+    }
+    match /note/{cc} {
+      allow read: if canCity(cc);
+      allow write: if isAdmin();
+    }
+    // 市区町村ごとのまとめ・間取りの修正・ネットの修正・位置の修正
+    match /sum/{cc} { allow read, write: if canCity(cc); }
+    match /typ/{cc} { allow read, write: if canCity(cc); }
+    match /netx/{cc} { allow read, write: if canCity(cc); }
+    match /pos/{cc} { allow read, write: if canCity(cc); }
+    // 建物ごとの部屋の記録（会社の財産。アプリからは消せない）
+    match /b/{bid} {
+      allow read: if isStaff() || (isUser() && (resource == null || canCity(resource.data.cc)));
+      allow create: if isUser() && canCity(request.resource.data.cc);
+      allow update: if isUser() && canCity(resource.data.cc) && request.resource.data.cc == resource.data.cc;
+      allow delete: if false;
+    }
+    // その日の活動記録：1日1人1文書。毎晩スプレッドシートへ移したあと消す
+    match /act/{id} {
+      allow read: if isStaff() || (isUser() && (resource == null || resource.data.u == em()));
+      allow create: if isUser() && request.resource.data.u == em();
+      allow update: if isUser() && resource.data.u == em() && request.resource.data.u == em();
+      allow delete: if isAdmin();
+    }
+  }
+}
