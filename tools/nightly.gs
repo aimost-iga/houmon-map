@@ -144,6 +144,8 @@ function run_(todayOverride) {
   });
   if (rows.length) {
     const start = Math.max(sh.getLastRow(), 1) + 1;
+    const need = start + rows.length - 1 - sh.getMaxRows();
+    if (need > 0) sh.insertRowsAfter(sh.getMaxRows(), need + 500);
     sh.getRange(start, 1, rows.length, 19).setValues(rows);
     SpreadsheetApp.flush();
   }
