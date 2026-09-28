@@ -2809,7 +2809,11 @@ async function boot(){
     FB.loadMaster((n, all) => { $('#loading').textContent = `建物リストを読み込んでいます…（${n}/${all}）`; }),
     fetch('areas.json').then(r => r.json()), fetch('rail.json').then(r => r.json())]);
   const bj = Object.assign({ month: '', source: '', history: [], baseline: true }, mj.meta || {}, { buildings: mj.buildings });
-  if (!mj.meta) { showGate('建物リストがまだ入っていません。管理者に連絡してください。'); return; }
+  if (!mj.meta) {
+    if (FB.isAdmin()) { showGate('建物リストがまだ入っていません。取り込みファイルを選んでください。'); $('#gateMsg').append(importSection()); }
+    else showGate('建物リストがまだ入っていません。管理者に連絡してください。');
+    return;
+  }
   META = bj; B = bj.buildings; B.forEach(b => byId[b.id] = b);
   const live = B.filter(b => !b.x).length;
   $('#srcInfo').textContent = `ソニー訪販リスト ${ymLabel(bj.month || '2026-09')}版・${live.toLocaleString()}棟`;
