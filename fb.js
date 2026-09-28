@@ -169,9 +169,10 @@ const admin = {
     let n = 0;
     for (let i = 0; i < items.length;) {
       const batch = writeBatch(fs); let size = 0, cnt = 0;
-      while (i < items.length && cnt < 400) {
-        const s = JSON.stringify(items[i].data).length;
-        if (cnt && size + s > 8e6) break;
+      // 1回に送れる量には上限（約10MB）があるので、3MB・100件ずつに分けて書く
+      while (i < items.length && cnt < 100) {
+        const s = new TextEncoder().encode(JSON.stringify(items[i].data)).length;
+        if (cnt && size + s > 3e6) break;
         batch.set(ref(items[i].path), items[i].data); size += s; cnt++; i++;
       }
       await batch.commit(); n += cnt; onProgress && onProgress(n, items.length);
