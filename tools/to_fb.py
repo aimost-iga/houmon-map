@@ -18,7 +18,7 @@ s = ('<!doctype html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n'
      '<meta name="robots" content="noindex,nofollow">\n') + s
 rep('/*LEAFLET_CSS*/', css)
 rep('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>',
-    '<script type="module" src="fb.js"></script>\n<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>')
+    '<script type="module" src="fb.js?v=' + __import__('hashlib').md5(open('/home/claude/houmon-map/fb.js','rb').read()).hexdigest()[:8] + '"></script>\n<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>')
 # head と body の区切り：最初の </style> のあとで head を閉じる
 i = s.index('</style>') + len('</style>')
 s = s[:i] + '\n</head>\n<body>' + s[i:]
