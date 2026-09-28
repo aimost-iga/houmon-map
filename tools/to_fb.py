@@ -297,5 +297,67 @@ rep("""  body.append(el('div', { class: 'ctl' }, el('label', { for: 'homeSort', 
 rep("""function fbReady(){""", """if (matchMedia('(max-width:760px)').matches) { const h = document.getElementById('hq'); if (h) h.placeholder = '市区町村・町名・建物名でさがす'; const q = document.getElementById('q'); if (q) q.placeholder = '駅・町名・建物名でさがす'; }
 function fbReady(){""")
 
+
+# ---------- 自社の見た目（AImost のロゴと色） ----------
+rep('<meta name="robots" content="noindex,nofollow">\n',
+    '<meta name="robots" content="noindex,nofollow">\n'
+    '<meta name="theme-color" content="#1B1FA8">\n'
+    '<meta name="apple-mobile-web-app-title" content="訪問マップ">\n'
+    '<link rel="icon" type="image/png" href="img/favicon.png">\n'
+    '<link rel="apple-touch-icon" href="img/apple-touch-icon.png">\n'
+    '<link rel="manifest" href="manifest.webmanifest">\n')
+BRAND_CSS = """
+/* AImost の色：ロゴの紺（#1B1FA8）と空色（#5CC2F2）。状態の色（緑・黄・赤など）は意味を守るため変えない */
+:root{
+  --ink:#1b2233; --ink2:#4a5468; --ink3:#7a8396;
+  --bg:#f4f5f9; --card:#ffffff; --line:#d8dce8; --soft:#eceff6;
+  --accent:#1f2bab; --accent-ink:#ffffff; --accent-soft:#e6e9fb;
+  --brand-navy:#1B1FA8; --brand-mid:#2E51C0; --brand-sky:#5CC2F2;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --ink:#e8ebf4; --ink2:#b6bdcf; --ink3:#8c94a8;
+  --bg:#12151f; --card:#1b2030; --line:#323a52; --soft:#242b3e;
+  --accent:#9aa8ff; --accent-ink:#10132b; --accent-soft:#262d57;
+}}
+:root[data-theme="dark"]{
+  --ink:#e8ebf4; --ink2:#b6bdcf; --ink3:#8c94a8;
+  --bg:#12151f; --card:#1b2030; --line:#323a52; --soft:#242b3e;
+  --accent:#9aa8ff; --accent-ink:#10132b; --accent-soft:#262d57;
+}
+/* 上の帯：ロゴの色の細い線 */
+.top{border-top:3px solid transparent;border-image:linear-gradient(90deg,var(--brand-navy),var(--brand-mid) 45%,var(--brand-sky)) 1}
+.brand{align-items:center}
+.brand img{width:26px;height:22px;object-fit:contain;flex:none}
+.brand b{color:var(--ink)}
+.brand .co{font-size:11px;color:var(--ink3);font-weight:700;letter-spacing:.06em}
+/* さがす画面の見出し */
+.hbrand{display:flex;align-items:center;gap:10px;margin:2px 2px 12px}
+.hbrand img{width:40px;height:34px;object-fit:contain}
+.hbrand .t{display:flex;flex-direction:column;line-height:1.25}
+.hbrand b{font-size:19px;letter-spacing:.04em}
+.hbrand small{font-size:11.5px;color:var(--ink3);font-weight:700;letter-spacing:.08em}
+.hbrand .who{margin-left:auto;font-size:12px;color:var(--ink2);text-align:right;line-height:1.3}
+/* ログイン画面 */
+#gate .glogo{width:132px;height:auto;margin:0 auto 4px;display:block}
+#gate .gbtn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#gate .gbtn:hover{background:var(--brand-mid)}
+#gate .gbox{border-top:4px solid var(--brand-navy)}
+#gate .gbox > div{display:flex;flex-direction:column;align-items:center;gap:10px}
+#gate .gbtn{min-width:220px;min-height:48px}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .hbrand img, :root:not([data-theme="light"]) .brand img, :root:not([data-theme="light"]) #gate .glogo{background:#fff;border-radius:8px;padding:3px} }
+"""
+i = s.index('</style>')
+s = s[:i] + BRAND_CSS + s[i:]
+rep('<div class="brand"><b>訪問マップ</b><small id="srcInfo"></small></div>',
+    '<div class="brand"><img src="img/mark.png" alt=""><b>訪問マップ</b><span class="co">AImost</span><small id="srcInfo"></small></div>')
+rep('<section class="home" id="home"><div class="home-in">',
+    '<section class="home" id="home"><div class="home-in">\n      <div class="hbrand"><img src="img/mark.png" alt="AImost"><div class="t"><b>訪問マップ</b><small>AImost</small></div><div class="who" id="hWho"></div></div>')
+rep('<div id="gate" hidden><div class="gbox"><h1>訪問マップ</h1><div id="gateMsg"></div></div></div>',
+    '<div id="gate" hidden><div class="gbox"><img class="glogo" src="img/logo.png" alt="AImost"><h1>訪問マップ</h1><div id="gateMsg"></div></div></div>')
+# ログイン中の人の名前を、さがす画面の右上に
+rep("""  META = bj; B = bj.buildings; B.forEach(b => byId[b.id] = b);""",
+    """  META = bj; B = bj.buildings; B.forEach(b => byId[b.id] = b);
+  { const m = FB.me() || {}; const w = document.getElementById('hWho'); if (w) w.textContent = (m.name || '') + ({ admin: '（管理者）', contractor: '（業務委託）' }[m.role] || ''); }""")
+
 open(os.path.join('/home/claude/houmon-map', 'index.html'), 'w', encoding='utf-8').write(s)
 print('ok', len(s))
