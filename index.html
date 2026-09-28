@@ -1537,14 +1537,14 @@ function accountBox(){
   const roleL = { admin: '管理者', staff: '社員', contractor: '業務委託' }[m.role] || '';
   return el('section', { class: 'sec' }, el('h3', { text: 'ログイン中' }),
     el('div', { class: 'ctl', style: 'justify-content:space-between' }, el('span', null, el('b', { text: m.name || '' }), `　${m.email || ''}　${roleL}`),
-      el('button', { class: 'btn', onclick: () => FB.signOut() }, 'ログアウト')),
+      el('span', { style: 'display:inline-flex;gap:6px' }, el('a', { class: 'btn', href: 'guide.html', target: '_blank', rel: 'noopener', style: 'text-decoration:none' }, '使い方'), el('button', { class: 'btn', onclick: () => FB.signOut() }, 'ログアウト'))),
     m.role === 'contractor' ? el('div', { class: 'muted', text: '担当エリア：' + (m.areas || []).map(cc => (CITY[cc] && CITY[cc].short) || cc).join('、') }) : null);
 }
 const ROLE_L = { admin: '管理者', staff: '社員', contractor: '業務委託' };
 // 招待メール：Gmail の作成画面を、宛先・件名・本文を入れた状態で開く（送信は自分で押す）
 function inviteMail(u){
   const url = location.origin + location.pathname;
-  const body = `${u.name ? u.name + 'さん\n\n' : ''}訪問マップを使えるように登録しました。\n\n下のアドレスを開いて「Googleでログイン」を押し、このメールが届いたアドレス（${u.email}）でログインしてください。\n${url}\n\nスマホは、開いたあと「ホーム画面に追加」しておくと、アプリのように使えて便利です。`;
+  const body = `${u.name ? u.name + 'さん\n\n' : ''}訪問マップを使えるように登録しました。\n\n下のアドレスを開いて「Googleでログイン」を押し、このメールが届いたアドレス（${u.email}）でログインしてください。\n${url}\n\nスマホは、開いたあと「ホーム画面に追加」しておくと、アプリのように使えて便利です。\n\n使い方（3分で読めます）：\n${url}guide.html`;
   const g = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(u.email) + '&su=' + encodeURIComponent('訪問マップの招待') + '&body=' + encodeURIComponent(body);
   window.open(g, '_blank', 'noopener');
 }
@@ -2848,7 +2848,8 @@ function showGate(kind, email){
   const g = $('#gate'), m = $('#gateMsg'); g.hidden = false; m.textContent = ''; $('#loading').hidden = true;
   if (kind === 'out') {
     m.append(el('p', { text: '会社で許可されたGoogleアカウントでログインしてください。' }),
-      el('button', { class: 'gbtn', onclick: async e => { e.target.disabled = true; try { await FB.signIn(); location.reload(); } catch(err){ e.target.disabled = false; toast('ログインできませんでした。もう一度お試しください。'); } } }, 'Googleでログイン'));
+      el('button', { class: 'gbtn', onclick: async e => { e.target.disabled = true; try { await FB.signIn(); location.reload(); } catch(err){ e.target.disabled = false; toast('ログインできませんでした。もう一度お試しください。'); } } }, 'Googleでログイン'),
+      el('a', { href: 'guide.html', style: 'color:var(--accent);font-size:13.5px' }, '使い方を見る'));
   } else if (kind === 'denied') {
     m.append(el('p', null, el('b', { text: email || '' }), ' は、まだこのアプリを使えるように登録されていません。'),
       el('p', { text: '管理者に、このアドレスを登録してもらってください。' }),

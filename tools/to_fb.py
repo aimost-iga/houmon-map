@@ -45,7 +45,8 @@ function showGate(kind, email){
   const g = $('#gate'), m = $('#gateMsg'); g.hidden = false; m.textContent = ''; $('#loading').hidden = true;
   if (kind === 'out') {
     m.append(el('p', { text: '会社で許可されたGoogleアカウントでログインしてください。' }),
-      el('button', { class: 'gbtn', onclick: async e => { e.target.disabled = true; try { await FB.signIn(); location.reload(); } catch(err){ e.target.disabled = false; toast('ログインできませんでした。もう一度お試しください。'); } } }, 'Googleでログイン'));
+      el('button', { class: 'gbtn', onclick: async e => { e.target.disabled = true; try { await FB.signIn(); location.reload(); } catch(err){ e.target.disabled = false; toast('ログインできませんでした。もう一度お試しください。'); } } }, 'Googleでログイン'),
+      el('a', { href: 'guide.html', style: 'color:var(--accent);font-size:13.5px' }, '使い方を見る'));
   } else if (kind === 'denied') {
     m.append(el('p', null, el('b', { text: email || '' }), ' は、まだこのアプリを使えるように登録されていません。'),
       el('p', { text: '管理者に、このアドレスを登録してもらってください。' }),
@@ -142,14 +143,14 @@ rep("""function watchPerm(){""", r"""function accountBox(){
   const roleL = { admin: '管理者', staff: '社員', contractor: '業務委託' }[m.role] || '';
   return el('section', { class: 'sec' }, el('h3', { text: 'ログイン中' }),
     el('div', { class: 'ctl', style: 'justify-content:space-between' }, el('span', null, el('b', { text: m.name || '' }), `　${m.email || ''}　${roleL}`),
-      el('button', { class: 'btn', onclick: () => FB.signOut() }, 'ログアウト')),
+      el('span', { style: 'display:inline-flex;gap:6px' }, el('a', { class: 'btn', href: 'guide.html', target: '_blank', rel: 'noopener', style: 'text-decoration:none' }, '使い方'), el('button', { class: 'btn', onclick: () => FB.signOut() }, 'ログアウト'))),
     m.role === 'contractor' ? el('div', { class: 'muted', text: '担当エリア：' + (m.areas || []).map(cc => (CITY[cc] && CITY[cc].short) || cc).join('、') }) : null);
 }
 const ROLE_L = { admin: '管理者', staff: '社員', contractor: '業務委託' };
 // 招待メール：Gmail の作成画面を、宛先・件名・本文を入れた状態で開く（送信は自分で押す）
 function inviteMail(u){
   const url = location.origin + location.pathname;
-  const body = `${u.name ? u.name + 'さん\n\n' : ''}訪問マップを使えるように登録しました。\n\n下のアドレスを開いて「Googleでログイン」を押し、このメールが届いたアドレス（${u.email}）でログインしてください。\n${url}\n\nスマホは、開いたあと「ホーム画面に追加」しておくと、アプリのように使えて便利です。`;
+  const body = `${u.name ? u.name + 'さん\n\n' : ''}訪問マップを使えるように登録しました。\n\n下のアドレスを開いて「Googleでログイン」を押し、このメールが届いたアドレス（${u.email}）でログインしてください。\n${url}\n\nスマホは、開いたあと「ホーム画面に追加」しておくと、アプリのように使えて便利です。\n\n使い方（3分で読めます）：\n${url}guide.html`;
   const g = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(u.email) + '&su=' + encodeURIComponent('訪問マップの招待') + '&body=' + encodeURIComponent(body);
   window.open(g, '_blank', 'noopener');
 }
@@ -234,6 +235,67 @@ rep("""    else if (!db) sec.append(el('p', { class: 'muted', text: '保存機�
 rep("""  if (e && e.code === 'invalid_argument' && canWrite !== true) { canWrite = false; renderSheetDynamic(); return new Error('この画面の権限では登録できません。共有設定で「参加者」以上にしてもらってください。'); }""",
     """  if (e && e.code === 'permission_denied') return new Error('この建物は、あなたのアカウントでは登録できません。管理者に確認してください。');""")
 rep("""    if (!notesCache[p])""", """    if (!notesCache[p])""", 0)
+
+
+# ---------- スマホの画面（幅760px以下） ----------
+MOBILE_CSS = """
+@media (max-width:760px){
+  /* 下に固定したメニュー（親指で押せる位置・文字つき） */
+  #app{box-sizing:border-box;padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:1300;margin:0;gap:0;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 14px rgba(20,40,45,.08)}
+  .tb{flex:1 1 0;min-width:0;flex-direction:column;gap:2px;padding:6px 0 4px;border:0;border-radius:10px;background:none;font-size:10.5px;line-height:1.1;position:relative;color:var(--ink2)}
+  .tb svg{width:21px;height:21px}
+  .tb .lb{display:block!important;white-space:nowrap}
+  .tb[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+  .tb .cnt{position:absolute;top:2px;left:calc(50% + 6px);font-size:10px;padding:0 5px}
+  .tb[aria-pressed="true"] .cnt{background:var(--accent);color:var(--accent-ink)}
+  /* 上の帯は細く。さがす画面では消して、広く使う */
+  .top{padding:6px 10px}
+  .brand b{font-size:15px}
+  .homeMode .top{padding:0;border:0;min-height:0}
+  .homeMode .brand{display:none}
+  /* 建物の画面は全面に */
+  .sheet{top:0;max-height:none;border-radius:0;border-top:0}
+  .panel{width:100%}
+  /* 文字入力で画面が勝手に拡大しないように（iPhone） */
+  input,select,textarea{font-size:16px!important}
+  select{padding:8px 10px!important;border-radius:8px}
+  /* 押しやすい大きさ */
+  .chk{min-height:40px;display:inline-flex;align-items:center;gap:8px}
+  .chk input{width:20px;height:20px}
+  .btn{min-height:40px}
+  .x{width:40px;height:40px}
+  /* 部屋の登録：「登録する」ボタンを常に下に見せる */
+  .rform{max-height:92%}
+  .rform .btn.primary{position:sticky;bottom:0;z-index:2;box-shadow:0 -6px 12px var(--card)}
+  .res button{min-height:56px;font-size:15px}
+  /* さがす画面 */
+  .home-in{padding-top:10px}
+  .hstats{gap:6px}
+  .hstats > div{padding:8px 4px}
+  .hstats span{font-size:11px}
+  .hfilt{display:none}
+  .home.filtOpen .hfilt{display:flex}
+  .hfiltBtn{display:flex!important}
+  .lrow{min-height:56px}
+  .gmap,.addr{width:42px;height:42px}
+  .legend{bottom:8px}
+}
+.hfiltBtn{display:none;width:100%;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:14px;margin:4px 0}
+.hfiltBtn b{color:var(--accent)}
+"""
+i = s.index('</style>')
+s = s[:i] + MOBILE_CSS + s[i:]
+
+# 町・並び順などの「しぼりこみ」を、スマホでは1つのボタンの中にしまう
+rep("""  body.append(el('div', { class: 'ctl' }, el('label', { for: 'homeSort', text: '並び順' }), sel,""",
+    """  { const nOn = (homeSort !== 'addr' ? 1 : 0) + (homeTy ? 1 : 0) + (homeNf ? 1 : 0) + (homeOnlyNew ? 1 : 0) + (homeHideNG ? 1 : 0);
+    body.append(el('button', { class: 'hfiltBtn', onclick: () => { $('#home').classList.toggle('filtOpen'); } }, el('span', null, '並び順・しぼりこみ', nOn ? el('b', { text: `（${nOn}つ使用中）` }) : null), el('span', { class: 'muted', text: '開く／閉じる' }))); }
+  body.append(el('div', { class: 'ctl hfilt' }, el('label', { for: 'homeSort', text: '並び順' }), sel,""")
+
+# スマホでは検索欄の例を短く
+rep("""function fbReady(){""", """if (matchMedia('(max-width:760px)').matches) { const h = document.getElementById('hq'); if (h) h.placeholder = '市区町村・町名・建物名でさがす'; const q = document.getElementById('q'); if (q) q.placeholder = '駅・町名・建物名でさがす'; }
+function fbReady(){""")
 
 open(os.path.join('/home/claude/houmon-map', 'index.html'), 'w', encoding='utf-8').write(s)
 print('ok', len(s))

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>訪問マップの使い方</title>
+<style>
+:root{
+  --ink:#1c2a2e;--ink2:#4d5d62;--ink3:#7d8b8f;--bg:#f3f5f4;--card:#fff;--line:#d6ddda;--soft:#e9eeec;
+  --accent:#0f6b73;--accent-soft:#dcefef;--warn:#b3261e;--warn-soft:#fbe9e7;
+  --g:#2b9a5a;--y:#e3a019;--r:#d24a3a;--n:#9aa4a8;--k:#262b2f;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#e6eeec;--ink2:#b7c4c1;--ink3:#8a9996;--bg:#141b1d;--card:#1d2629;--line:#33413f;--soft:#26302f;
+  --accent:#5cc0c6;--accent-soft:#1f3a3c;--warn:#ff8a80;--warn-soft:#3a2220;--k:#dfe5e3;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:16px;line-height:1.7}
+main{max-width:640px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:22px;margin:8px 0 2px}
+.lead{color:var(--ink2);margin:0 0 16px;font-size:14.5px}
+.open{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.open a{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700}
+@media (prefers-color-scheme:dark){.open a{color:#10292b}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 12px}
+.must{border:2px solid var(--accent)}
+.must h2{color:var(--accent)}
+h2{font-size:17px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+h2 .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:14px;flex:none}
+ol,ul{margin:0;padding-left:1.3em}
+li{margin:3px 0}
+b{font-weight:700}
+.muted{color:var(--ink3);font-size:13.5px}
+.res{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;margin-top:6px;font-size:15px}
+.res dt{font-weight:700;white-space:nowrap}
+.res dd{margin:0;color:var(--ink2)}
+.dots{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:14.5px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.stop{background:var(--warn-soft);border-color:transparent}
+.stop h2{color:var(--warn)}
+details{border-top:1px solid var(--soft);padding:8px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:700}
+.key{display:inline-block;padding:0 6px;border:1px solid var(--line);border-radius:6px;background:var(--soft);font-size:14px}
+footer{color:var(--ink3);font-size:13px;text-align:center;margin-top:20px}
+</style>
+</head>
+<body>
+<main>
+  <h1>訪問マップの使い方</h1>
+  <p class="lead">3分で読めます。まずは「大事なこと」だけ覚えてください。</p>
+  <div class="open"><a href="./">訪問マップを開く</a></div>
+
+  <section class="card must">
+    <h2>大事なこと 3つ</h2>
+    <ol>
+      <li><b>反応があった部屋は、必ず登録。</b>インターホンNG・対面NG・再訪・獲得・未入居は、会社の大切な記録として残ります。</li>
+      <li><b>不在は、押すだけでOK。</b>その日の訪問数に数えるだけで、記録には残りません。会えるまで何度でも行きます。</li>
+      <li><b>訪問前に建物の画面を見る。</b>「訪問前に確認」や「勧誘禁止」が出ていたら、必ず従ってください。</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">0</span>はじめに（最初の1回だけ）</h2>
+    <ol>
+      <li>「訪問マップを開く」を押して、<b>Googleでログイン</b>。会社に伝えたGmailを選びます。</li>
+      <li><b>ホーム画面に追加</b>しておくと、アプリのように開けます。<br>
+        <span class="muted">iPhone：下の <span class="key">共有</span> →「ホーム画面に追加」／Android：右上の <span class="key">︙</span> →「ホーム画面に追加」</span></li>
+    </ol>
+    <p class="muted">「登録されていません」と出たら、管理者に連絡してください。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">1</span>建物をさがす</h2>
+    <ol>
+      <li>画面下の <b>さがす</b> を押す。</li>
+      <li>市区町村を選ぶか、町名・建物名を入れる。</li>
+      <li>一覧の右の <b>ピン</b> のボタンでGoogleマップの道案内、<b>＋</b> で今日のルートに追加。</li>
+    </ol>
+    <div class="dots">
+      <span><i class="dot" style="background:var(--g)"></i>最近訪問した</span>
+      <span><i class="dot" style="background:var(--y)"></i>少し空いた</span>
+      <span><i class="dot" style="background:var(--r)"></i>しばらく行っていない</span>
+      <span><i class="dot" style="background:var(--n)"></i>まだ誰も行っていない</span>
+      <span><i class="dot" style="background:var(--k)"></i>訪販禁止（行かない）</span>
+    </div>
+    <p class="muted" style="margin:8px 0 0">建物名の横の「単身」「ファミリー」は予想です。「並び順・しぼりこみ」で単身だけ、未訪問だけ、なども選べます。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span>部屋の結果を登録する</h2>
+    <ol>
+      <li>建物を押す → <b>部屋番号</b>を押す。</li>
+      <li>結果を1つ選ぶ（下の表）。</li>
+      <li>出てきた項目（断られた理由など）を、分かる範囲で押す。</li>
+      <li><b>登録する</b> を押して完了。</li>
+    </ol>
+    <dl class="res">
+      <dt>不在</dt><dd>誰も出なかった（その日だけ表示）</dd>
+      <dt>インターホンNG</dt><dd>インターホン越しに断られた</dd>
+      <dt>対面NG</dt><dd>会えたが断られた</dd>
+      <dt>再訪</dt><dd>また来てほしい（次のタイミングを選ぶ）</dd>
+      <dt>獲得</dt><dd>申込みをもらえた（内容を選ぶ）</dd>
+      <dt>未入居</dt><dd>空き部屋に見えた（表札なし・郵便受け封鎖など）</dd>
+    </dl>
+    <p class="muted" style="margin:8px 0 0">押し間違えたら、建物の「訪問履歴」の <b>この登録を取り消す</b> を2回押します（自分の登録・3日以内）。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>現場で違っていたら直す</h2>
+    <ul>
+      <li><b>間取り</b>：単身／単身・セミ／ファミリー を押して直す。</li>
+      <li><b>ネット</b>：無料ネットあり／個別契約（有料）を押す。確認の画面が出るので「変更する」で決定。</li>
+      <li><b>地図の位置</b>：建物の前で「今いる場所がこの建物」を押す。</li>
+    </ul>
+    <p class="muted" style="margin:6px 0 0">直した内容は全員の画面に反映されます。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">4</span>今日の成果を見る</h2>
+    <p style="margin:0">画面下の <b>活動記録</b> で、今日の訪問数・対面数・獲得数が見られます。前日までの分は、毎晩会社のスプレッドシートにまとめられます。</p>
+  </section>
+
+  <section class="card stop">
+    <h2>してはいけないこと</h2>
+    <ul>
+      <li>「勧誘禁止」の部屋、「訪販禁止」の建物は訪問しない。</li>
+      <li>アプリの画面（特記事項や鍵の情報）を、社外の人に見せたり送ったりしない。</li>
+      <li>自分のGoogleアカウントを、他の人に使わせない。</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>困ったとき</h2>
+    <details><summary>動かない・表示がおかしい</summary><p class="muted">アプリを一度閉じて、開き直してください。直らなければ管理者へ。</p></details>
+    <details><summary>電波が弱い場所で登録した</summary><p class="muted">アプリを開いたままにしておけば、電波が戻ったときに送られます。すぐに閉じた場合は、あとで建物の画面を開いて、登録が残っているか確かめてください。</p></details>
+    <details><summary>建物がリストにない</summary><p class="muted">リストは毎月更新されます。見つからない建物は、管理者に建物名と住所を伝えてください。</p></details>
+  </section>
+
+  <footer>株式会社AImost　訪問マップ</footer>
+</main>
+</body>
+</html>
