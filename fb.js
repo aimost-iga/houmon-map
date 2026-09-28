@@ -150,7 +150,8 @@ async function loadMaster(onProgress) {
     try { localStorage.setItem(key, String(meta.v)); } catch (e) {}
   }
   const buildings = [];
-  for (const d of docs) for (const b of (d.b || [])) buildings.push(b);
+  // 建物は市区町村ごとに文字列（j）でしまってある（入れ子の配列を保存できないため）
+  for (const d of docs) for (const b of (d.b || (d.j ? JSON.parse(d.j) : []))) buildings.push(b);
   return { meta, buildings };
 }
 const noteCache = {};
