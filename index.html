@@ -1079,7 +1079,6 @@ details.pref .cities{padding:6px 0 8px}
 #gate .gbtn{min-width:220px;min-height:48px}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .hbrand img, :root:not([data-theme="light"]) .brand img, :root:not([data-theme="light"]) #gate .glogo{background:#fff;border-radius:8px;padding:3px} }
 </style>
-<link rel="stylesheet" href="seiseki.css?v=1">
 </head>
 <body>
 
@@ -1096,7 +1095,7 @@ details.pref .cities{padding:6px 0 8px}
       <button class="tb" id="tMap" aria-pressed="false" title="地図"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span class="lb">地図</span></button>
       <button class="tb" id="tList" aria-pressed="false" title="表示中の建物"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="lb">一覧</span></button>
       <button class="tb" id="tArea" aria-pressed="false" title="エリア別の状況"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span class="lb">エリア</span></button>
-      <button class="tb" id="tAct" aria-pressed="false" title="業務（今日の予定・開始/終了・成績）"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span class="lb">業務</span></button>
+      <button class="tb" id="tAct" aria-pressed="false" title="活動記録"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 2v4M16 2v4M4 10h16M8 14h3M8 17h6"/></svg><span class="lb">活動記録</span></button>
       <button class="tb" id="tRoute" aria-pressed="false" title="今日のルート"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></svg><span class="lb">ルート</span><span class="cnt" id="routeCnt">0</span></button>
       <button class="tb" id="tSet" aria-pressed="false" title="表示設定"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lb">設定</span></button>
     </nav>
@@ -1141,8 +1140,7 @@ details.pref .cities{padding:6px 0 8px}
   <div id="gate" hidden><div class="gbox"><img class="glogo" src="img/logo.png" alt="AImost"><h1>訪問マップ</h1><div id="gateMsg"></div></div></div>
 </div>
 
-<script type="module" src="fb.js?v=ss1"></script>
-<script src="seiseki.js?v=1"></script>
+<script type="module" src="fb.js?v=10077ece"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 (function(){
@@ -2313,7 +2311,6 @@ function renderAct(){
     el('input', { type: 'date', id: 'actDate', value: iso, style: 'padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card)', onchange: e => { if (e.target.value) { actState.date = e.target.value.replace(/-/g, ''); loadAct(); } } }),
     el('select', { id: 'actSpan', onchange: e => { actState.span = +e.target.value; loadAct(); } }, [[1, 'この日だけ'], [7, '7日間'], [30, '30日間']].map(([v, t]) => el('option', { value: v, selected: v === actState.span }, t))),
     el('select', { id: 'actWho', onchange: e => { actState.who = e.target.value; renderAct(); } }, el('option', { value: '' }, '全員'), people.map(u => el('option', { value: u, selected: u === actState.who }, nameOf(u))))));
-  body.append(el('button', { class: 'btn', onclick: () => openPanel('me') }, '← 業務に戻る'));
   body.append(el('div', { class: 'muted', text: '前日までの活動記録は、毎晩0時15分にスプレッドシート「訪問活動記録」へ移して、アプリからは消しています。ここで見られるのは主に今日の分です。' }));
   if (!db) { body.append(el('div', { class: 'note-box', text: '保存機能につながったときに、登録された結果がここに日別・担当者別で並びます。' })); drawAct([]); return; }
   const list = actState.who ? actEntries.filter(x => x.u === actState.who) : actEntries;
@@ -2554,11 +2551,11 @@ function openPanel(kind){
   if (panelKind === kind) { closePanel(); return; }
   if (panelKind === 'act' && kind !== 'act') { actLayer.clearLayers(); if (actUnsub) { try { actUnsub(); } catch(e){} actUnsub = null; } }
   panelKind = kind;
-  ['list', 'area', 'act', 'route', 'set'].forEach(k => $('#t' + k[0].toUpperCase() + k.slice(1)).setAttribute('aria-pressed', k === kind || (k === 'act' && kind === 'me')));
+  ['list', 'area', 'act', 'route', 'set'].forEach(k => $('#t' + k[0].toUpperCase() + k.slice(1)).setAttribute('aria-pressed', k === kind));
   if (kind === 'upd' || kind === 'vac') $('#tSet').setAttribute('aria-pressed', 'false');
   $('#panel').hidden = false; $('.stage').classList.add('has-panel');
   if (window.innerWidth <= 760) closeSheet();
-  ({ list: renderList, area: renderArea, act: loadAct, route: renderRoute, set: renderSet, upd: renderUpd, vac: renderVac, me: renderMe })[kind]();
+  ({ list: renderList, area: renderArea, act: loadAct, route: renderRoute, set: renderSet, upd: renderUpd, vac: renderVac })[kind]();
   drawRouteLine();
 }
 function closePanel(){ panelKind = null; $('#panel').hidden = true; $('.stage').classList.remove('has-panel'); ['List', 'Area', 'Act', 'Route', 'Set'].forEach(k => $('#t' + k).setAttribute('aria-pressed', 'false')); drawRouteLine(); actLayer.clearLayers(); if (actUnsub) { try { actUnsub(); } catch(e){} actUnsub = null; } }
@@ -2566,10 +2563,7 @@ $('#pClose').addEventListener('click', closePanel);
 $('#tList').addEventListener('click', () => { if (homeOn && panelKind !== 'list') setView('map'); openPanel('list'); });
 $('#tArea').addEventListener('click', () => openPanel('area'));
 $('#tRoute').addEventListener('click', () => openPanel('route'));
-$('#tAct').addEventListener('click', () => openPanel(panelKind === 'act' ? 'act' : 'me'));
-// 業務（予定・開始/終了・お題・成績）：中身は seiseki.js
-function renderMe(tab){ if (window.Seiseki) window.Seiseki.render(tab); else { $('#pTitle').textContent = '業務'; $('#pBody').textContent = '読み込み中…'; } }
-function openMe(tab){ if (panelKind === 'me') renderMe(tab); else { openPanel('me'); if (tab) renderMe(tab); } }
+$('#tAct').addEventListener('click', () => openPanel('act'));
 $('#tSet').addEventListener('click', () => openPanel('set'));
 function pickFromPanel(id){ if (window.innerWidth <= 760) closePanel(); openBuilding(id, true); }
 
@@ -2791,7 +2785,6 @@ function renderHome(){
   $('#home').scrollTop = keep;
 }
 function renderHomeTop(body){
-  if (db && window.Seiseki) { const c = window.Seiseki.homeCard(); if (c) body.append(c); }
   body.append(el('div', { class: 'hlead', text: '市区町村を選ぶと、その地域の建物が一覧で出ます。建物を押すと部屋ごとの結果を登録できます。道案内はGoogleマップのボタンから。' }));
   const rc = recentCities();
   if (rc.length) body.append(el('div', { class: 'hcard' }, el('h3', { text: '最近見た市区町村' }), el('div', { class: 'cities' }, rc.map(cc => cityBtn(cc, CITY[cc].name.replace(' ', '　'))))));
@@ -2957,12 +2950,6 @@ async function connect(){
   if (user) { try { me = await user.me(); canWrite = await user.can('data.write'); isOwner = await user.isOwner(); } catch(e){} }
   PERM = {}; updateVacUI();
   watchToday(); setInterval(watchToday, 5 * 60000);
-  if (window.Seiseki) window.Seiseki.start({
-    el, $, toast, upsert, FB, me: () => me, openPanel, openMe, nameOf,
-    isOpen: () => panelKind === 'me',
-    homeRefresh: () => { if (homeOn && !homeCC && !$('#hq').value) { const a = document.activeElement; if (!(a && $('#home').contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName))) renderHome(); } },
-    cityNames: () => [...new Set(Object.values(CITY).map(c => c.short).filter(Boolean))]
-  });
   db.collection('pos').onSnapshot(snap => { DOCN.pos = snap.docs.length; const n = {}; snap.docs.forEach(d => Object.assign(n, d.data() || {})); applyPos(n); if (openId) { const x = $('#posBox'); if (x) x.replaceWith(posBox(byId[openId])); } }, () => {});
   db.collection('netx').onSnapshot(snap => { DOCN.netx = snap.docs.length; const n = {}; snap.docs.forEach(d => Object.assign(n, d.data() || {})); NETO = n; if (S.nf) drawMarkers(); if (openId) { const x = $('#netBox'); if (x) x.replaceWith(netBox(byId[openId])); } if (homeOn && homeCC && !$('#hq').value) renderHome(); }, () => {});
   db.collection('typ').onSnapshot(snap => { DOCN.typ = snap.docs.length; const n = {}; snap.docs.forEach(d => Object.assign(n, d.data() || {})); TYO = n; restyle(); if (homeOn && homeCC && !$('#hq').value) renderHome(); }, () => {});

@@ -146,9 +146,6 @@ function run_(todayOverride) {
     SpreadsheetApp.flush();
   }
 
-  // 業務の記録（day）に、その日の訪問数を残す（アプリの「今月の成績」で使う。消す前に）
-  acts.forEach(a => { try { saveVisits_(a); } catch (err) { log_('訪問数を残せなかった：' + a.id + ' ' + err.message); } });
-
   // 確かめてから消す：その日の記録が全部「明細」に入っている日だけ
   const have2 = new Set(keysOf_(sh));
   let deleted = 0;
@@ -165,20 +162,6 @@ function run_(todayOverride) {
   });
   const sumN = rows.reduce((s, r) => s + Number(r[18] || 0), 0);
   log_('追記 ' + rows.length + '行（訪問 ' + sumN + '件）・アプリから消した記録 ' + deleted + '件');
-}
-
-/** 1人1日の訪問数（訪問・対面・獲得など）を day/<日付>_<人> の v に書く */
-function saveVisits_(a){
-  const v = { doors: 0, face: 0, got: 0, away: 0, ihng: 0, fng: 0, again: 0, vac: 0 };
-  for (const k in a.data) {
-    const e = a.data[k];
-    if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r]) continue;
-    v.doors++; v[e.r] = (v[e.r] || 0) + 1;
-    if (e.r === 'fng' || e.r === 'again' || e.r === 'got') v.face++;
-  }
-  const f = {}; for (const k in v) f[k] = { integerValue: String(v[k]) };
-  const body = { fields: { u: { stringValue: a.data.u || '' }, d: { stringValue: a.data.d }, v: { mapValue: { fields: f } } } };
-  fsFetch_(FS + '/day/' + a.id + '?updateMask.fieldPaths=u&updateMask.fieldPaths=d&updateMask.fieldPaths=v', { method: 'patch', payload: JSON.stringify(body) });
 }
 
 /** 試し：明日の日付として動かす（今日の分まで書き写して消す） */
