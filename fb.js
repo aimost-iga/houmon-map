@@ -117,6 +117,23 @@ const act = {
   }
 };
 
+// 業務の記録：day/<日付>_<人> の1日1人1文書（予定・開始/終了・配布・反響対応・日報）。ずっと残す（小さいので）。
+// 社員・管理者は全員分を読める。業務委託は自分の分だけ。
+const day = {
+  ref: d => docApi('day/' + d + '_' + ukey(ME.email)),
+  watch: (d, next) => onSnapshot(ref('day/' + d + '_' + ukey(ME.email)), s => next(s.exists() ? s.data() : null), () => next(null)),
+  mine: async () => { try { return (await getDocs(query(collection(fs, 'day'), where('u', '==', ME.email)))).docs.map(d => d.data()); } catch (e) { return null; } },
+  range: async (from, to) => {
+    if (!isStaff()) return [];
+    try { return (await getDocs(query(collection(fs, 'day'), where('d', '>=', from), where('d', '<=', to)))).docs.map(d => d.data()); } catch (e) { return null; }
+  }
+};
+// 会社の設定（お題の基準など）：だれでも読める、管理者だけ書ける
+const cfg = {
+  watch: (id, next) => onSnapshot(ref('cfg/' + id), s => next(s.exists() ? s.data() : null), () => next(null)),
+  set: async (id, d) => { try { await setDoc(ref('cfg/' + id), clean(d)); } catch (e) { throw err(e); } }
+};
+
 // 人の名前（社員・管理者だけが一覧を読める）
 let NAMES = {};
 async function loadNames() {
@@ -230,7 +247,7 @@ function whenSignedIn() {
 
 window.FB = {
   db: { doc: docApi, collection: collApi },
-  user, act, admin, loadMaster, loadNotes, ukey,
+  user, act, day, cfg, admin, loadMaster, loadNotes, ukey,
   me: () => ME, isStaff, isAdmin,
   whenSignedIn,
   signIn: async () => { const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' }); await signInWithPopup(auth, p); },
