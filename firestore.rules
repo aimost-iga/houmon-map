@@ -72,6 +72,11 @@ service cloud.firestore {
       allow read: if isAdmin() || (isUser() && (resource == null || resource.data.u == em()));
       allow write: if isUser() && request.resource.data.u == em() && (resource == null || resource.data.u == em());
     }
+    // 経費の月ごとの集計（Apps Script が経費申請管理のスプレッドシートから書く）：本人と代表だけ見られる
+    match /kh/{id} {
+      allow read: if isAdmin() || (isUser() && resource != null && resource.data.get('u', '') == em());
+      allow write: if false;
+    }
     // 自動のお知らせの回数（Apps Script が書く）
     match /ntc/{d} {
       allow read: if isAdmin();
