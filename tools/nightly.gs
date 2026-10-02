@@ -175,20 +175,29 @@ function saveVisits_(a){
     if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r]) continue;
     v.doors++; v[e.r] = (v[e.r] || 0) + 1;
     if (e.r === 'fng' || e.r === 'again' || e.r === 'got') v.face++;
-    if (e.t) ts.push(Number(e.t));
+    if (e.t) ts.push({ t: Number(e.t), b: e.bid });
   }
-  v.span = spanOf_(ts);
+  const sp = spanOf_(ts); v.span = sp.ms; v.batch = sp.batch; v.batchRun = sp.run;
   const f = {}; for (const k in v) f[k] = { integerValue: String(v[k]) };
   const body = { fields: { u: { stringValue: a.data.u || '' }, d: { stringValue: a.data.d }, v: { mapValue: { fields: f } } } };
   fsFetch_(FS + '/day/' + a.id + '?updateMask.fieldPaths=u&updateMask.fieldPaths=d&updateMask.fieldPaths=v', { method: 'patch', payload: JSON.stringify(body) });
 }
 
-/** 訪問の登録時刻から、訪販で実際に動いていた時間（ミリ秒）を出す。30分以上あいたら休憩とみなし、1件ごとに5分を足す */
-function spanOf_(ts) {
-  ts.sort((a, b) => a - b); let ms = 0, st = null, last = null;
-  ts.forEach(t => { if (st == null) { st = last = t; return; } if (t - last > 30 * 60000) { ms += last - st + 5 * 60000; st = t; } last = t; });
+/** 訪問の登録時刻から、訪販で動いていた時間（ミリ秒）を出す。
+ *  30分以上あいたら区切る。20秒未満の間隔、または違う建物なのに1分未満の間隔は「あとからのまとめ入力」とみなして時間に足さない。
+ *  返り値：{ ms, batch（まとめ入力とみた件数）, run（まとめ入力が続いた最長の件数） } */
+function spanOf_(xs) {
+  xs.sort((a, b) => a.t - b.t); let ms = 0, st = null, last = null, run = 0, batch = 0, runMax = 0;
+  for (let i = 0; i < xs.length; i++) {
+    const x = xs[i], p = xs[i - 1]; const g = p ? x.t - p.t : Infinity;
+    const fast = p && (g < 20000 || (x.b !== p.b && g < 60000));
+    run = fast ? run + 1 : 0; if (fast) batch++; runMax = Math.max(runMax, run);
+    if (fast) continue;
+    if (st == null || g > 30 * 60000) { if (st != null) ms += last - st + 5 * 60000; st = x.t; }
+    last = x.t;
+  }
   if (st != null) ms += last - st + 5 * 60000;
-  return ms;
+  return { ms, batch, run: runMax };
 }
 
 /** 試し：明日の日付として動かす（今日の分まで書き写して消す） */
