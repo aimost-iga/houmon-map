@@ -1075,6 +1075,20 @@ details.pref .cities{padding:6px 0 8px}
 #gate .gbtn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 #gate .gbtn:hover{background:var(--brand-mid)}
 #gate .gbox{border-top:4px solid var(--brand-navy)}
+.apick-sum{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.apick-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto}
+.apick-chip{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:16px;padding:4px 10px;font-size:13px}
+.apick-list{display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow:auto;margin-top:4px}
+.apick-pref{border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.apick-pref summary{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;list-style:none}
+.apick-pref summary::-webkit-details-marker{display:none}
+.apick-pref summary .btn{font-size:12.5px;padding:5px 10px;min-height:34px}
+.apick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:0 10px 10px}
+.apick-c{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:8px;min-height:44px;cursor:pointer}
+.apick-c.on{border-color:var(--accent);background:var(--accent-soft)}
+.apick-c input{width:18px;height:18px;flex:none}
+.apick-c span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.apick-c small{color:var(--ink3);font-size:11px}
 #gate .gbox > div{display:flex;flex-direction:column;align-items:center;gap:10px}
 #gate .gbtn{min-width:220px;min-height:48px}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .hbrand img, :root:not([data-theme="light"]) .brand img, :root:not([data-theme="light"]) #gate .glogo{background:#fff;border-radius:8px;padding:3px} }
@@ -1619,13 +1633,44 @@ async function usersSection(){
     const box = el('div', { class: 'note-box', style: 'display:flex;flex-direction:column;gap:8px;margin-top:8px' });
     const inp = (label, key, type, ph) => el('label', { class: 'field' }, label, el('input', { type, value: f[key], placeholder: ph || '', disabled: key === 'email' && !!u, style: 'padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--card)', oninput: e => f[key] = e.target.value }));
     const areaBox = el('div');
+    // 担当エリア：都県ごとにまとめて選べる。検索・都県まるごと選択・まとめて外す
+    const prefOf = cc => (CITY[cc] && CITY[cc].name || '').split(' ')[0] || 'その他';
+    const cntOf = cc => (CITY[cc] && CITY[cc].ids ? CITY[cc].ids.length : 0);
+    const openPref = new Set();
+    let areaQ = '';
     const drawAreas = () => {
       areaBox.textContent = '';
       if (f.role !== 'contractor') return;
-      const sel = el('select', { style: 'padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);max-width:260px' }, el('option', { value: '' }, '市区町村を選んで追加'), cityOpts.filter(([cc]) => !f.areas.includes(cc)).map(([cc, n]) => el('option', { value: cc }, n)));
-      sel.addEventListener('change', () => { if (sel.value) { f.areas.push(sel.value); drawAreas(); } });
-      areaBox.append(el('div', { class: 'flab', text: '担当エリア（ここに入れた市区町村の建物だけ見られます）' }),
-        el('div', { class: 'ctl', style: 'gap:6px' }, f.areas.map(cc => el('button', { class: 'btn', title: '押すと外します', onclick: () => { f.areas = f.areas.filter(x => x !== cc); drawAreas(); } }, ((CITY[cc] && CITY[cc].short) || cc) + ' ×'))), sel);
+      const sel = new Set(f.areas);
+      const total = f.areas.reduce((a, cc) => a + cntOf(cc), 0);
+      const summary = el('div', { class: 'apick-sum' },
+        el('div', null, el('b', { text: `${f.areas.length}市区町村` }), `・約${total.toLocaleString()}棟を選択中`),
+        f.areas.length ? el('button', { class: 'linkbtn', onclick: () => { f.areas = []; drawAreas(); } }, 'すべて外す') : null);
+      const chips = el('div', { class: 'apick-chips' }, f.areas.map(cc => el('button', { class: 'apick-chip', title: '押すと外します', onclick: () => { f.areas = f.areas.filter(x => x !== cc); drawAreas(); } }, ((CITY[cc] && CITY[cc].short) || cc) + ' ×')));
+      const q = el('input', { type: 'search', placeholder: '市区町村名でさがす（例：世田谷、川崎）', value: areaQ, style: 'width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)' });
+      const list = el('div', { class: 'apick-list' });
+      const drawList = () => {
+        list.textContent = '';
+        const qq = nzq(areaQ);
+        const groups = {};
+        for (const [cc, n] of cityOpts) { if (qq && !nzq(n).includes(qq)) continue; (groups[prefOf(cc)] = groups[prefOf(cc)] || []).push(cc); }
+        const prefs = Object.keys(groups);
+        if (!prefs.length) list.append(el('p', { class: 'muted', text: '見つかりません。' }));
+        for (const p of prefs) {
+          const ccs = groups[p]; const on = ccs.filter(cc => sel.has(cc)).length; const all = on === ccs.length;
+          const det = el('details', { class: 'apick-pref', open: !!qq || openPref.has(p) });
+          det.addEventListener('toggle', () => { if (det.open) openPref.add(p); else openPref.delete(p); });
+          det.append(el('summary', null, el('span', null, el('b', { text: p }), el('span', { class: 'muted', text: `　${on}/${ccs.length}` })),
+            el('button', { class: 'btn', onclick: e => { e.preventDefault(); if (all) f.areas = f.areas.filter(x => !ccs.includes(x)); else ccs.forEach(cc => { if (!sel.has(cc)) f.areas.push(cc); }); openPref.add(p); drawAreas(); } }, all ? (qq ? '出ているものを外す' : 'この都県を外す') : (qq ? '出ているものを全部選ぶ' : 'この都県を全部選ぶ'))),
+            el('div', { class: 'apick-grid' }, ccs.map(cc => el('label', { class: 'apick-c' + (sel.has(cc) ? ' on' : '') },
+              el('input', { type: 'checkbox', checked: sel.has(cc), onchange: e => { if (e.target.checked) { if (!f.areas.includes(cc)) f.areas.push(cc); } else f.areas = f.areas.filter(x => x !== cc); openPref.add(p); drawAreas(); } }),
+              el('span', { text: (CITY[cc] && CITY[cc].short) || cc }), el('small', { text: cntOf(cc) + '棟' })))));
+          list.append(det);
+        }
+      };
+      q.addEventListener('input', () => { areaQ = q.value; drawList(); });
+      areaBox.append(el('div', { class: 'flab', text: '担当エリア（ここで選んだ市区町村の建物だけ見られます）' }), summary, chips, q, list);
+      drawList();
     };
     const roleSel = el('select', { style: 'padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);max-width:220px', onchange: e => { f.role = e.target.value; drawAreas(); } },
       ['staff', 'contractor', 'admin'].map(r => el('option', { value: r, selected: r === f.role }, ROLE_L[r])));
