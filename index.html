@@ -1248,6 +1248,20 @@ details.pref .cities{padding:6px 0 8px}
 #app.jpShake{animation:jpShake .38s linear}
 @keyframes jpShake{10%{transform:translate(-6px,3px)}20%{transform:translate(6px,-4px)}30%{transform:translate(-5px,-3px)}40%{transform:translate(5px,4px)}50%{transform:translate(-3px,2px)}60%{transform:translate(3px,-2px)}75%{transform:translate(-2px,1px)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){#jp .rays,#jp .glow,#jp .w1,#jp .st{animation:none}#jp .rays{display:none}#jp .disc,#jp .rib{animation:none;transform:translate(-50%,-50%)}#jp .rib{transform:none}#app.jpShake{animation:none}}
+
+.repBox{border:2px solid var(--accent);border-radius:12px;padding:10px 12px;margin:0 0 10px;background:var(--card)}
+.repBox b{display:block;margin-bottom:6px}
+.repBtns{display:flex;flex-direction:column;gap:6px}
+.repBtns a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;border-radius:10px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;font-size:15px}
+.repBtns a span{font-size:12px;font-weight:400;opacity:.9}
+@media (prefers-color-scheme:dark){.repBtns a{color:#10132b}}
+#repCard{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));width:min(420px,calc(100vw - 24px));z-index:2600;background:var(--card);color:var(--ink);border:2px solid var(--accent);border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#repCard .rh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+#repCard .rh b{font-size:16px}
+#repCard .x{border:0;background:none;font-size:22px;line-height:1;color:var(--ink2);padding:4px 8px;cursor:pointer}
+.repCopy{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.repCopy button{flex:1 1 auto;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--soft,#eef0f6);color:var(--ink);font-size:13.5px;cursor:pointer}
+@media (min-width:761px){#repCard{bottom:24px}}
 </style>
 </head>
 <body>
@@ -2307,6 +2321,32 @@ function jackpot(n, lv){
   requestAnimationFrame(tick);
 }
 // 光・金のふち・大きな文字（文字は濃い紺の板の上なので読みやすい）
+const REPORT_FORMS = [
+  { name: 'NURO光（後確・申込連携）', url: 'https://forms.gle/K5acTr1Ux2opE4WS8' },
+  { name: '報告フォーム（2つ目）', url: 'https://forms.gle/AJkjg6Lp4fe9Q7zm9' },
+];
+function repLinks(){
+  return el('div', { class: 'repBtns' }, REPORT_FORMS.map(f => el('a', { href: f.url, target: '_blank', rel: 'noopener' }, f.name, el('span', { text: '開く ↗' }))));
+}
+function reportBox(){
+  return el('div', { class: 'repBox' }, el('b', { text: '獲得したら、どちらかのフォームで必ず報告' }), repLinks());
+}
+async function copyText(t, label){
+  try { await navigator.clipboard.writeText(t); toast(label + 'をコピーしました。フォームに貼り付けてください'); }
+  catch(e){ window.prompt('長押しでコピーしてください', t); }
+}
+function reportCard(b, r){
+  const old = document.getElementById('repCard'); if (old) old.remove();
+  const card = el('div', { id: 'repCard', role: 'dialog', 'aria-label': '獲得の報告' },
+    el('div', { class: 'rh' }, el('b', { text: '獲得の報告を忘れずに！' }), el('button', { class: 'x', 'aria-label': '閉じる', onclick: () => card.remove() }, '×')),
+    el('div', { class: 'muted', style: 'margin-bottom:8px', text: '棟ID・建物名と部屋番号は、下のボタンでコピーして貼り付けられます。' }),
+    repLinks(),
+    el('div', { class: 'repCopy' },
+      el('button', { onclick: () => copyText(String(b.id).replace(/^b_/, ''), '棟ID') }, '棟IDをコピー'),
+      el('button', { onclick: () => copyText(b.n + ' ' + r + '号室', '建物名・部屋番号') }, '建物名・部屋番号をコピー')));
+  card.querySelectorAll('.repBtns a').forEach(a => a.addEventListener('click', () => setTimeout(() => card.remove(), 300)));
+  document.body.append(card);
+}
 function gotShow(n){
   const lv = Math.min(3, n);
   fireworks(lv);
@@ -2700,6 +2740,7 @@ function renderRoomForm(){
       catch(err){ if (wasGot) { TODAY.pending = Math.max(0, TODAY.pending - 1); updateStrip(); const c = document.getElementById('gotBand'); if (c) c.remove(); } throw err; }
       toast(`${r}号室を「${RES[form.r]}」で登録しました`);
       closeRoom();
+      if (wasGot) setTimeout(() => reportCard(b, r), 1600);
     } catch(e){ toast(e && e.message ? e.message : '登録できませんでした。'); save.disabled = false; save.textContent = '登録する'; }
   });
   body.append(el('div', { class: 'flab', text: '結果' }), resRow, extra, memo, save);
@@ -2869,6 +2910,7 @@ function renderAct(){
     el('input', { type: 'date', id: 'actDate', value: iso, style: 'padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card)', onchange: e => { if (e.target.value) { actState.date = e.target.value.replace(/-/g, ''); loadAct(); } } }),
     el('select', { id: 'actSpan', onchange: e => { actState.span = +e.target.value; loadAct(); } }, [[1, 'この日だけ'], [7, '7日間'], [30, '30日間']].map(([v, t]) => el('option', { value: v, selected: v === actState.span }, t))),
     el('select', { id: 'actWho', onchange: e => { actState.who = e.target.value; renderAct(); } }, el('option', { value: '' }, '全員'), people.map(u => el('option', { value: u, selected: u === actState.who }, nameOf(u))))));
+  body.append(reportBox());
   body.append(el('div', { class: 'muted', text: '前日までの活動記録は、毎晩0時15分にスプレッドシート「訪問活動記録」へ移して、アプリからは消しています。ここで見られるのは主に今日の分です。' }));
   if (!db) { body.append(el('div', { class: 'note-box', text: '保存機能につながったときに、登録された結果がここに日別・担当者別で並びます。' })); drawAct([]); return; }
   const list = actState.who ? actEntries.filter(x => x.u === actState.who) : actEntries;
