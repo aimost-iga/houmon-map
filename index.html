@@ -1098,6 +1098,13 @@ details.pref .cities{padding:6px 0 8px}
   background:linear-gradient(100deg,#1B1FA8 0%,#2a3db5 100%);box-shadow:inset 0 -4px 0 #5CC2F2,0 8px 24px rgba(27,31,168,.35);
   transform:translateY(-110%);transition:transform .32s cubic-bezier(.2,1.3,.4,1)}
 #gotBand.show{transform:translateY(0)}
+#gotBand{pointer-events:none}
+@media (max-width:760px){
+  /* スマホ：下のメニューと「本日の獲得」の帯のすぐ上に出す（建物の名前や閉じるボタンを隠さない） */
+  #gotBand{top:auto;bottom:calc(58px + 32px + env(safe-area-inset-bottom,0px));height:54px;transform:translateY(130%);box-shadow:inset 0 -4px 0 #5CC2F2,0 -6px 20px rgba(27,31,168,.3)}
+  #gotBand.kami{box-shadow:inset 0 -4px 0 #ffd54a,0 -6px 20px rgba(27,31,168,.3)}
+  #gotBand.show{transform:translateY(0)}
+}
 #gotBand .lab{font-size:12px;letter-spacing:.12em;font-weight:700;opacity:.92;white-space:nowrap}
 #gotBand .num{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap;text-shadow:0 2px 8px rgba(0,0,0,.25)}
 #gotBand .num small{font-size:15px;margin-left:2px}
@@ -1142,6 +1149,26 @@ details.pref .cities{padding:6px 0 8px}
   .gstrip{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:1290;border-bottom:0;border-top:1px solid var(--line)}
   .gstrip.l1,.gstrip.l2,.gstrip.night{border-top-color:transparent}
 }
+
+.atabs{display:flex;gap:6px;margin-bottom:8px}
+.atabs button{flex:1;padding:9px 6px;border:1px solid var(--line);border-radius:9px;background:var(--card);font-weight:700;font-size:14px;color:var(--ink2);position:relative}
+.atabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.atabs .bdg{position:absolute;top:-6px;right:-4px;background:#d24a3a;color:#fff;border-radius:10px;font-size:11px;padding:0 6px;line-height:18px}
+.vrow{display:grid;grid-template-columns:1fr auto auto;gap:6px 8px;align-items:center;padding:9px 2px;border-bottom:1px solid var(--soft)}
+.vrow .nm{font-weight:700;cursor:pointer;min-width:0}
+.vrow .nm small{display:block;font-weight:400;color:var(--ink3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vrow .facts2{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 6px;font-size:12.5px}
+.vrow .facts2 span{background:var(--soft);border-radius:6px;padding:1px 7px;color:var(--ink2)}
+.vrow .facts2 .hot{background:#fdecea;color:#b3261e;font-weight:700}
+.vrow .facts2 .rv{background:#e8f1fd;color:#1d4f9a;font-weight:700}
+.vrow .facts2 .g{background:#e5f5ec;color:#1f7a45;font-weight:700}
+.rvlist{grid-column:1/-1;display:flex;flex-direction:column;gap:3px;font-size:13px}
+.rvlist div{display:flex;gap:8px;align-items:baseline}
+.rvlist b{min-width:3.2em}
+.rvlist .now{color:#b3261e;font-weight:700}
+.hotbox{border:2px solid #d24a3a;border-radius:10px;padding:8px 10px;margin:6px 0 10px;background:var(--card)}
+.hotbox h3{margin:0 0 4px;font-size:14px;color:#b3261e}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .vrow .facts2 .hot{background:#3d1f1b;color:#ff9b8f} :root:not([data-theme="light"]) .vrow .facts2 .rv{background:#1d2d4a;color:#9cc2ff} :root:not([data-theme="light"]) .vrow .facts2 .g{background:#173326;color:#8fe0b0} :root:not([data-theme="light"]) .rvlist .now,:root:not([data-theme="light"]) .hotbox h3{color:#ff9b8f} }
 </style>
 </head>
 <body>
@@ -2022,7 +2049,7 @@ function gotBand(n){
   if (!n) return;
   const top = document.querySelector('.top'); const r = top && top.offsetHeight ? top.getBoundingClientRect() : null;
   let c = document.getElementById('gotBand'); if (c) c.remove();
-  c = el('div', { id: 'gotBand', class: n >= 2 ? 'kami' : '', role: 'status', 'aria-live': 'polite', onclick: () => c.classList.remove('show') },
+  c = el('div', { id: 'gotBand', class: n >= 2 ? 'kami' : '', role: 'status', 'aria-live': 'polite' },
     el('div', { class: 'shine' }), el('div', { class: 'lab', text: '本日の獲得' }),
     el('div', { class: 'num' }, String(n), el('small', { text: '件' })), el('div', { class: 'msg', text: GOT_MSG(n) }));
   c.style.setProperty('--bandTop', (r && r.bottom > 0 ? Math.round(r.bottom) : 0) + 'px');
@@ -2050,6 +2077,76 @@ function updateStrip(){
   c.className = 'gstrip' + (n >= 2 ? ' l2' : n === 1 ? ' l1' : '') + (h >= 19 || h < 4 ? ' night' : '');
   c.textContent = '';
   c.append(el('span', { class: 'gs-lab', text: matchMedia('(max-width:420px)').matches ? '今日' : '本日の獲得' }), el('span', { class: 'gs-num' }, String(n), el('small', { text: '件' })), el('span', { class: 'gs-msg', text: stripMsg(n) }));
+}
+// ---- 2巡目・再訪 ----
+function lastVisit(st){ return st ? Math.max(st.l || 0, st.a || 0) : 0; }
+function unmetOf(b, st){ const met = st ? (st.m != null ? st.m : Object.keys(st.v || {}).length + (st.n ? 1 : 0)) : 0; return Math.max(0, (b.t || 0) - met - (b.kn || []).length - (b.in || []).length); }
+// 再訪の「いつ」が今に合っているか
+function revNow(w, t){
+  const now = new Date(), h = now.getHours(), wd = now.getDay(), we = wd === 0 || wd === 6;
+  if (w === '今日の夜') return ymd(t) === ymd(Date.now()) && h >= 17;
+  if (w === '平日の昼') return !we && h >= 10 && h < 17;
+  if (w === '平日の夜') return !we && h >= 17;
+  if (w === '土日') return we;
+  return false;
+}
+// 再訪の一覧（onlyNow：今が狙い目だけ）。60日より前のものは出さない
+function revisits(onlyNow, mine){
+  const out = [];
+  for (const cc in SUM) for (const id in SUM[cc]) { const st = SUM[cc][id]; const b = byId[id]; if (!b || !st || !st.rv) continue;
+    for (const r in st.rv) { const x = st.rv[r]; if (Date.now() - (x.t || 0) > 60 * DAY) continue; if (mine && x.u !== me.id) continue;
+      const now = revNow(x.w, x.t); if (onlyNow && !now) continue; out.push({ b, r, w: x.w, t: x.t, u: x.u, m: x.m, now }); } }
+  return out;
+}
+function vRow(b, facts, extra){
+  const inR = route.includes(b.id);
+  const gm = el('a', { class: 'gmap', href: gmapsLink(b), target: '_blank', rel: 'noopener', title: 'Googleマップで開く', 'aria-label': 'Googleマップで開く' });
+  gm.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+  return el('div', { class: 'vrow' },
+    el('div', { class: 'nm', onclick: () => pickFromPanel(b.id) }, b.n, el('small', { text: restOf(b) || b.a || '' })), gm,
+    el('button', { class: 'addr' + (inR ? ' on' : ''), 'aria-label': inR ? 'ルートから外す' : 'ルートに追加', onclick: () => { toggleRoute(b.id); renderAct(); } }, inR ? '✓' : '＋'),
+    el('div', { class: 'facts2' }, facts.filter(Boolean)), extra || null);
+}
+function renderNext(body){
+  const nd = actState.nd || 7, sort = actState.ns || 'rv', onlyRv = !!actState.nrv;
+  // 今が狙い目の再訪
+  const hot = revisits(true).sort((a, c) => a.t - c.t);
+  if (hot.length) {
+    const hb = el('div', { class: 'hotbox' }, el('h3', { text: `今が狙い目の再訪 ${hot.length}室` }));
+    hot.slice(0, 30).forEach(x => hb.append(el('div', { class: 'vrow', style: 'border:0;padding:4px 0' },
+      el('div', { class: 'nm', onclick: () => pickFromPanel(x.b.id) }, `${x.b.n} ${x.r}号室`, el('small', { text: `${x.w}・${fmtDate(x.t).replace(/\(.\)/, '')}に${nameOf(x.u)}${x.m ? '・' + x.m : ''}` })))));
+    body.append(hb);
+  }
+  body.append(el('div', { class: 'ctl' },
+    el('select', { onchange: e => { actState.nd = +e.target.value; renderAct(); } }, [[3, '3日以内に回った'], [7, '7日以内に回った'], [14, '14日以内に回った'], [30, '30日以内に回った']].map(([v, t]) => el('option', { value: v, selected: v === nd }, t))),
+    el('select', { onchange: e => { actState.ns = e.target.value; renderAct(); } }, [['rv', '再訪がある建物を先に'], ['unmet', '会えていない部屋が多い順'], ['old', '回った日が古い順'], ...(HERE ? [['near', '現在地から近い順']] : [])].map(([v, t]) => el('option', { value: v, selected: v === sort }, t))),
+    el('label', { class: 'chk' }, el('input', { type: 'checkbox', checked: onlyRv, onchange: e => { actState.nrv = e.target.checked; renderAct(); } }), '再訪がある建物だけ')));
+  const since = Date.now() - nd * DAY;
+  let rows = [];
+  for (const b of B) { if (b.x) continue; const st = statOf(b); const lv = lastVisit(st); if (!lv || lv < since) continue;
+    const rv = st && st.rv ? Object.entries(st.rv).filter(([r, x]) => Date.now() - (x.t || 0) <= 60 * DAY) : [];
+    if (onlyRv && !rv.length) continue;
+    rows.push({ b, st, lv, rv, unmet: unmetOf(b, st), hot: rv.some(([r, x]) => revNow(x.w, x.t)) }); }
+  const key = { rv: o => -(o.hot ? 1000 : 0) - o.rv.length * 10 - o.unmet / 1000, unmet: o => -o.unmet, old: o => o.lv, near: o => metersTo(o.b) };
+  rows.sort((a, c) => key[sort](a) - key[sort](c));
+  body.append(el('div', { class: 'muted', text: `${rows.length}棟。「まだ会えていない」は、総戸数から、結果が残っている部屋・勧誘禁止・開通済みを引いた目安です。` }));
+  const ids = rows.map(o => o.b.id).filter(id => !route.includes(id)).slice(0, 10);
+  if (ids.length) body.append(el('button', { class: 'btn primary', style: 'margin:6px 0', onclick: () => { route.push(...ids); saveRoute(); drawRouteLine(); toast(`上から${ids.length}棟をルートに追加しました`); renderAct(); } }, `上から${ids.length}棟をルートに追加`));
+  const box = el('section', { class: 'sec' });
+  rows.slice(0, 200).forEach(o => {
+    const rvl = o.rv.length ? el('div', { class: 'rvlist' }, o.rv.sort((a, c) => a[1].t - c[1].t).map(([r, x]) => el('div', null, el('b', { text: r }), el('span', { class: revNow(x.w, x.t) ? 'now' : '', text: (x.w || 'いつでも') + (revNow(x.w, x.t) ? '（今が狙い目）' : '') }), el('span', { class: 'muted', text: `${fmtDate(x.t).replace(/\(.\)/, '')} ${nameOf(x.u)}${x.m ? '・' + x.m : ''}` })))) : null;
+    box.append(vRow(o.b, [el('span', { text: `最終 ${ago(o.lv)}` }), el('span', { class: o.unmet ? 'hot' : '', text: `まだ会えていない 約${o.unmet}室` }), o.rv.length ? el('span', { class: 'rv', text: `再訪 ${o.rv.length}室` }) : null, o.st && o.st.g ? el('span', { class: 'g', text: `獲得 ${o.st.g}` }) : null], rvl));
+  });
+  if (!rows.length) box.append(el('p', { class: 'muted', text: 'この期間に回った建物はありません。' }));
+  body.append(box);
+}
+// 開いたとき：自分の再訪で「今が狙い目」があれば、時間帯ごとに1回だけ知らせる
+function checkRevReminder(){
+  const mine = revisits(true, true); if (!mine.length) return;
+  const h = new Date().getHours(); const slot = ymd(Date.now()) + (h < 12 ? 'a' : h < 17 ? 'b' : 'c');
+  if (store.get('revSlot', '') === slot) return; store.set('revSlot', slot);
+  const bn = $('#banner'); bn.hidden = false; bn.textContent = '';
+  bn.append(el('b', { text: `今が狙い目の再訪が${mine.length}室あります　` }), el('button', { class: 'linkbtn', onclick: () => { bn.hidden = true; actState.tab = 'next'; if (panelKind !== 'act') openPanel('act'); else renderAct(); } }, '見る'), '　', el('button', { class: 'linkbtn', onclick: () => { bn.hidden = true; } }, '閉じる'));
 }
 function todayAway(bid){ return (TODAY.day === ymd(Date.now()) && TODAY.by[bid]) || {}; }
 function liveLog(){
@@ -2350,7 +2447,8 @@ function sumEntry(log){
   for (const x of arr) if (!latest[x.room] || x.t > latest[x.room].t) latest[x.room] = x;
   const v = {}; let fn = 0, pn = 0;
   for (const r in latest) { if (latest[r].r === 'vac') v[r] = latest[r].t; const nt = latest[r].net; if (nt === '物件の備え付け') fn++; else if (PAID_NETS.includes(nt)) pn++; }
-  return { l: last.t, n: arr.length, g: arr.filter(x => x.r === 'got').length, r: last.r, u: last.u || '', v, fn, pn };
+  const rv = {}; for (const r in latest) if (latest[r].r === 'again') rv[r] = { w: latest[r].when || '', t: latest[r].t, u: latest[r].u || '', m: String(latest[r].m || '').slice(0, 60) };
+  return { l: last.t, n: arr.length, g: arr.filter(x => x.r === 'got').length, r: last.r, u: last.u || '', v, fn, pn, m: Object.keys(latest).length, rv };
 }
 async function upsert(ref, patch){
   try { await ref.update(patch); }
@@ -2377,6 +2475,7 @@ async function register(b, room, f){
     // 不在は「その日の訪問数」を数えるためだけに今日の活動記録へ入れる。建物・部屋の記録には残さない。
     try {
       await upsert(FB.act.ref(ymd(t)), { u: me.id, d: ymd(t), [k]: Object.assign({ bid: b.id, cc: b.cc }, entry) });
+      try { const se = Object.assign(sumEntry({}), (SUM[b.cc] || {})[b.id] || {}, { a: t }); await upsert(db.doc('sum/' + b.cc), { [b.id]: se }); SUM[b.cc] = Object.assign({}, SUM[b.cc] || {}, { [b.id]: se }); } catch(e){}
       watchToday();
       const d = ymd(t); if (TODAY.day === d) { TODAY.by[b.id] = Object.assign({}, TODAY.by[b.id] || {}, { [k]: Object.assign({ bid: b.id, cc: b.cc }, entry) }); }
       renderSheetDynamic();
@@ -2387,7 +2486,7 @@ async function register(b, room, f){
   try {
     await writeB(b, { rooms: { [room]: Object.assign({}, entry) }, log: { [k]: entry } });
     cur[k] = entry;
-    const se = sumEntry(cur);
+    const se = sumEntry(cur); { const pa = ((SUM[b.cc] || {})[b.id] || {}).a; if (pa) se.a = pa; }
     await upsert(db.doc('sum/' + b.cc), { [b.id]: se });
     SUM[b.cc] = Object.assign({}, SUM[b.cc] || {}, { [b.id]: se });
     const m = markers[b.id]; if (m) m.setStyle(styleFor(b));
@@ -2417,7 +2516,7 @@ async function undo(b, k){
     const rest = Object.values(d.log).filter(v => v.room === x.room).sort((a, c) => c.t - a.t)[0];
     if (rest) d.rooms[x.room] = rest; else delete d.rooms[x.room];
     await db.doc('b/' + b.id).set(d);
-    const se = sumEntry(d.log);
+    const se = sumEntry(d.log); { const pa = ((SUM[b.cc] || {})[b.id] || {}).a; if (pa) se.a = pa; }
     await upsert(db.doc('sum/' + b.cc), { [b.id]: se });
     SUM[b.cc] = Object.assign({}, SUM[b.cc] || {}, { [b.id]: se });
     const m = markers[b.id]; if (m) m.setStyle(styleFor(b));
@@ -2475,6 +2574,11 @@ function renderAct(){
   $('#pTitle').textContent = '活動記録';
   $('#pSub').textContent = actState.span === 1 ? `${d.getMonth() + 1}月${d.getDate()}日(${WEEK[d.getDay()]})` : `${d.getMonth() + 1}月${d.getDate()}日までの${actState.span}日間`;
   const body = $('#pBody'); body.textContent = '';
+  const hotN = revisits(true).length;
+  body.append(el('div', { class: 'atabs' },
+    el('button', { 'aria-pressed': String(actState.tab !== 'next'), onclick: () => { actState.tab = ''; renderAct(); } }, 'その日の記録'),
+    el('button', { 'aria-pressed': String(actState.tab === 'next'), onclick: () => { actState.tab = 'next'; renderAct(); } }, '2巡目・再訪', hotN ? el('span', { class: 'bdg', text: hotN }) : null)));
+  if (actState.tab === 'next') { $('#pSub').textContent = '最近回った建物と、もう一度行く部屋'; renderNext(body); drawAct([]); return; }
   const iso = `${actState.date.slice(0, 4)}-${actState.date.slice(4, 6)}-${actState.date.slice(6, 8)}`;
   const people = [...new Set(actEntries.map(x => x.u))];
   body.append(el('div', { class: 'ctl' },
@@ -2491,6 +2595,20 @@ function renderAct(){
       return el('div', { class: 'kpi' + (lv ? ' g' + lv : '') }, el('b', { text: v }), el('span', { text: t }), lv ? el('span', { class: 'tag', text: GOT_MSG(v) }) : null);
     })));
   body.append(el('div', { class: 'muted', text: c.doors ? `対面率 ${Math.round(c.face / c.doors * 100)}%・対面からの獲得率 ${c.face ? Math.round(c.got / c.face * 100) : 0}%（対面＝対面NG・再訪・獲得）` : 'この期間の登録はまだありません。' }));
+  // 回ったマンション
+  if (list.length) {
+    const g = {};
+    for (const x of list) { const o = g[x.bid] = g[x.bid] || { bid: x.bid, n: 0, away: 0, face: 0, got: 0, t0: x.t, t1: x.t }; o.n++; if (x.r === 'away') o.away++; if (FACE.includes(x.r)) o.face++; if (x.r === 'got') o.got++; o.t0 = Math.min(o.t0, x.t); o.t1 = Math.max(o.t1, x.t); }
+    const rows = Object.values(g).sort((a, b2) => a.t0 - b2.t0);
+    const hm = t => { const d = new Date(t); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    const sec = el('section', { class: 'sec' }, el('h3', { text: `回ったマンション（${rows.length}棟・回った順）` }));
+    rows.forEach(o => { const b = byId[o.bid]; if (!b) return; sec.append(vRow(b, [
+      el('span', { text: `${hm(o.t0)}${o.t1 - o.t0 > 60000 ? '〜' + hm(o.t1) : ''}` }), el('span', { text: `${o.n}室` }),
+      o.face ? el('span', { text: `会えた ${o.face}` }) : null, o.away ? el('span', { text: `不在 ${o.away}` }) : null, o.got ? el('span', { class: 'g', text: `獲得 ${o.got}` }) : null])); });
+    const ids = rows.map(o => o.bid).filter(id => byId[id] && !route.includes(id));
+    if (ids.length) sec.append(el('button', { class: 'btn', style: 'margin-top:8px', onclick: () => { route.push(...ids); saveRoute(); drawRouteLine(); toast(`${ids.length}棟をルートに追加しました（2巡目用）`); renderAct(); } }, 'この建物をまとめてルートに追加（2巡目用）'));
+    body.append(sec);
+  }
   // per person table
   if (people.length) {
     const tb = el('tbody');
@@ -3134,6 +3252,8 @@ async function connect(){
     snap.docs.forEach(d => { next[d.id] = d.data() || {}; });
     SUM = next;
     usageBanner();
+    if (!checkRevReminder._done) { checkRevReminder._done = true; checkRevReminder(); }
+    if (panelKind === 'act' && actState.tab === 'next') renderAct();
     restyle();
     if (S.onlyNew) drawMarkers();
     if (panelKind === 'list') renderList(); else if (panelKind === 'area') renderArea();
