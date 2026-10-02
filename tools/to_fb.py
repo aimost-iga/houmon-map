@@ -519,5 +519,54 @@ rep("""    [['訪問', c.doors], ['対面', c.face], ['獲得', c.got], ['棟数
       const lv = t === '獲得' ? Math.min(3, v) : 0;
       return el('div', { class: 'kpi' + (lv ? ' g' + lv : '') }, el('b', { text: v }), el('span', { text: t }), lv ? el('span', { class: 'tag', text: GOT_MSG(v) }) : null);
     })));""")
+
+# ---------- いつも出ている「今日の獲得」の細い帯（メニューにくっつけて、ほかの画面を隠さない） ----------
+STRIP_CSS = """
+.gstrip{display:flex;align-items:center;gap:10px;height:32px;padding:0 12px;font-size:13px;font-weight:700;cursor:pointer;flex:none;
+  background:var(--accent-soft);color:var(--accent);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden}
+.gstrip .gs-lab{font-size:11.5px;letter-spacing:.08em;opacity:.85}
+.gstrip .gs-num{font-size:18px;font-variant-numeric:tabular-nums;line-height:1}
+.gstrip .gs-num small{font-size:11.5px;margin-left:1px}
+.gstrip .gs-msg{margin-left:auto;overflow:hidden;text-overflow:ellipsis}
+.gstrip.l1{background:linear-gradient(90deg,#1B1FA8,#2E51C0 60%,#5CC2F2);color:#fff;border-bottom-color:transparent}
+.gstrip.l2{background:linear-gradient(90deg,#14178a,#2E51C0 55%,#c99a18);color:#fff;border-bottom-color:transparent}
+.gstrip.l2 .gs-num,.gstrip.l2 .gs-msg{color:#ffe27a}
+.gstrip.night:not(.l1):not(.l2){background:linear-gradient(90deg,#10132b,#1B1FA8);color:#fff;border-bottom-color:transparent}
+@media (max-width:760px){
+  #app{padding-bottom:calc(58px + 32px + env(safe-area-inset-bottom,0px))!important}
+  .gstrip{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:1290;border-bottom:0;border-top:1px solid var(--line)}
+  .gstrip.l1,.gstrip.l2,.gstrip.night{border-top-color:transparent}
+}
+"""
+i = s.index('</style>')
+s = s[:i] + STRIP_CSS + s[i:]
+rep('  <div id="banner" class="banner" hidden></div>',
+    '  <div id="gotStrip" class="gstrip" hidden role="button" aria-label="今日の獲得（押すと活動記録）"></div>\n  <div id="banner" class="banner" hidden></div>')
+rep("""function todayAway(bid){""", """// 時間帯と件数で、ひとことを変える（夜は「ラスト気合い」）
+function stripMsg(n){
+  const h = new Date().getHours();
+  const night = h >= 19 || h < 4, eve = h >= 17;
+  if (n >= 3) return night ? '伝説!! 最高の締めを!' : '伝説!! まだ伸ばせる!';
+  if (n === 2) return night ? '神!! ラスト気合いでもう1件!' : '神!! この勢いで3件目!';
+  if (n === 1) return night ? 'ラスト気合い!! あと1件!' : eve ? '夕方は会える時間! もう1件!!' : 'もう1件!!';
+  return night ? 'ラスト気合い!! 1件取りに行こう!' : eve ? '夕方は会える時間! 勝負どき!' : h < 12 ? '今日も1件いこう!' : 'まだまだこれから!';
+}
+function updateStrip(){
+  const c = document.getElementById('gotStrip'); if (!c || !db) return;
+  const n = myGotToday(); const h = new Date().getHours();
+  c.hidden = false;
+  c.className = 'gstrip' + (n >= 2 ? ' l2' : n === 1 ? ' l1' : '') + (h >= 19 || h < 4 ? ' night' : '');
+  c.textContent = '';
+  c.append(el('span', { class: 'gs-lab', text: '本日の獲得' }), el('span', { class: 'gs-num' }, String(n), el('small', { text: '件' })), el('span', { class: 'gs-msg', text: stripMsg(n) }));
+}
+function todayAway(bid){""")
+rep("""    TODAY.got = got; TODAY.gotGone = gone;""", """    TODAY.got = got; TODAY.gotGone = gone; updateStrip();""")
+rep("""    if (f.r === 'got') { TODAY.gotLocal = TODAY.gotLocal || new Set(); TODAY.gotLocal.add(k); }""",
+    """    if (f.r === 'got') { TODAY.gotLocal = TODAY.gotLocal || new Set(); TODAY.gotLocal.add(k); updateStrip(); }""")
+rep("""  watchToday(); setInterval(watchToday, 5 * 60000);""",
+    """  watchToday(); setInterval(watchToday, 5 * 60000);
+  updateStrip(); setInterval(updateStrip, 60000);
+  { const gs = document.getElementById('gotStrip'); if (gs) gs.addEventListener('click', () => openPanel('act')); }""")
+
 open(os.path.join('/home/claude/houmon-map', 'index.html'), 'w', encoding='utf-8').write(s)
 print('ok', len(s))

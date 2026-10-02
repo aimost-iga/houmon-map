@@ -1123,6 +1123,22 @@ details.pref .cities{padding:6px 0 8px}
 .kpi.g3 .tag{color:#ffe27a}
 @keyframes gotGlow{50%{box-shadow:0 0 0 2px #ffd54a,0 6px 26px rgba(255,213,74,.7)}}
 @media (prefers-reduced-motion:reduce){#gotBand{transition:none}#gotBand .shine,.kpi.g3,.kpi.g3::after{animation:none}}
+
+.gstrip{display:flex;align-items:center;gap:10px;height:32px;padding:0 12px;font-size:13px;font-weight:700;cursor:pointer;flex:none;
+  background:var(--accent-soft);color:var(--accent);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden}
+.gstrip .gs-lab{font-size:11.5px;letter-spacing:.08em;opacity:.85}
+.gstrip .gs-num{font-size:18px;font-variant-numeric:tabular-nums;line-height:1}
+.gstrip .gs-num small{font-size:11.5px;margin-left:1px}
+.gstrip .gs-msg{margin-left:auto;overflow:hidden;text-overflow:ellipsis}
+.gstrip.l1{background:linear-gradient(90deg,#1B1FA8,#2E51C0 60%,#5CC2F2);color:#fff;border-bottom-color:transparent}
+.gstrip.l2{background:linear-gradient(90deg,#14178a,#2E51C0 55%,#c99a18);color:#fff;border-bottom-color:transparent}
+.gstrip.l2 .gs-num,.gstrip.l2 .gs-msg{color:#ffe27a}
+.gstrip.night:not(.l1):not(.l2){background:linear-gradient(90deg,#10132b,#1B1FA8);color:#fff;border-bottom-color:transparent}
+@media (max-width:760px){
+  #app{padding-bottom:calc(58px + 32px + env(safe-area-inset-bottom,0px))!important}
+  .gstrip{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:1290;border-bottom:0;border-top:1px solid var(--line)}
+  .gstrip.l1,.gstrip.l2,.gstrip.night{border-top-color:transparent}
+}
 </style>
 </head>
 <body>
@@ -1145,6 +1161,7 @@ details.pref .cities{padding:6px 0 8px}
       <button class="tb" id="tSet" aria-pressed="false" title="表示設定"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lb">設定</span></button>
     </nav>
   </header>
+  <div id="gotStrip" class="gstrip" hidden role="button" aria-label="今日の獲得（押すと活動記録）"></div>
   <div id="banner" class="banner" hidden></div>
   <div class="stage">
     <div id="map"></div>
@@ -1957,7 +1974,7 @@ function watchToday(){
     const by = {}; const got = new Set(), gone = new Set();
     for (const data of docs) for (const k in data) { const v = data[k]; if (v && v.r === 'away' && !v.x && v.bid) (by[v.bid] = by[v.bid] || {})[k] = v;
       if (v && v.r === 'got' && v.u === me.id) (v.x ? gone : got).add(k); }
-    TODAY.got = got; TODAY.gotGone = gone;
+    TODAY.got = got; TODAY.gotGone = gone; updateStrip();
     TODAY.by = by;
     const ids = []; for (const x in by) for (const k in by[x]) ids.push(by[x][k].u);
     if (ids.length) resolveNames(ids).then(() => { if (openId) renderSheetDynamic(); });
@@ -2008,6 +2025,23 @@ function gotBand(n){
   requestAnimationFrame(() => c.classList.add('show'));
   if (navigator.vibrate) { try { navigator.vibrate(n >= 2 ? [60, 40, 60, 40, 120] : [80]); } catch(e){} }
   clearTimeout(gotBand._t); gotBand._t = setTimeout(() => { c.classList.remove('show'); setTimeout(() => c.remove(), 400); }, 4500);
+}
+// 時間帯と件数で、ひとことを変える（夜は「ラスト気合い」）
+function stripMsg(n){
+  const h = new Date().getHours();
+  const night = h >= 19 || h < 4, eve = h >= 17;
+  if (n >= 3) return night ? '伝説!! 最高の締めを!' : '伝説!! まだ伸ばせる!';
+  if (n === 2) return night ? '神!! ラスト気合いでもう1件!' : '神!! この勢いで3件目!';
+  if (n === 1) return night ? 'ラスト気合い!! あと1件!' : eve ? '夕方は会える時間! もう1件!!' : 'もう1件!!';
+  return night ? 'ラスト気合い!! 1件取りに行こう!' : eve ? '夕方は会える時間! 勝負どき!' : h < 12 ? '今日も1件いこう!' : 'まだまだこれから!';
+}
+function updateStrip(){
+  const c = document.getElementById('gotStrip'); if (!c || !db) return;
+  const n = myGotToday(); const h = new Date().getHours();
+  c.hidden = false;
+  c.className = 'gstrip' + (n >= 2 ? ' l2' : n === 1 ? ' l1' : '') + (h >= 19 || h < 4 ? ' night' : '');
+  c.textContent = '';
+  c.append(el('span', { class: 'gs-lab', text: '本日の獲得' }), el('span', { class: 'gs-num' }, String(n), el('small', { text: '件' })), el('span', { class: 'gs-msg', text: stripMsg(n) }));
 }
 function todayAway(bid){ return (TODAY.day === ymd(Date.now()) && TODAY.by[bid]) || {}; }
 function liveLog(){
@@ -2351,7 +2385,7 @@ async function register(b, room, f){
     const m = markers[b.id]; if (m) m.setStyle(styleFor(b));
     updateStatLine(); styleAreas();
     try { await upsert(FB.act.ref(ymd(t)), { u: me.id, d: ymd(t), [k]: Object.assign({ bid: b.id, cc: b.cc }, entry) }); } catch(e){}
-    if (f.r === 'got') { TODAY.gotLocal = TODAY.gotLocal || new Set(); TODAY.gotLocal.add(k); }
+    if (f.r === 'got') { TODAY.gotLocal = TODAY.gotLocal || new Set(); TODAY.gotLocal.add(k); updateStrip(); }
   } catch(e){ throw writeErr(e); }
 }
 let undoArm = null;
@@ -3081,6 +3115,8 @@ async function connect(){
   if (user) { try { me = await user.me(); canWrite = await user.can('data.write'); isOwner = await user.isOwner(); } catch(e){} }
   PERM = {}; updateVacUI();
   watchToday(); setInterval(watchToday, 5 * 60000);
+  updateStrip(); setInterval(updateStrip, 60000);
+  { const gs = document.getElementById('gotStrip'); if (gs) gs.addEventListener('click', () => openPanel('act')); }
   db.collection('pos').onSnapshot(snap => { DOCN.pos = snap.docs.length; const n = {}; snap.docs.forEach(d => Object.assign(n, d.data() || {})); applyPos(n); if (openId) { const x = $('#posBox'); if (x) x.replaceWith(posBox(byId[openId])); } }, () => {});
   db.collection('netx').onSnapshot(snap => { DOCN.netx = snap.docs.length; const n = {}; snap.docs.forEach(d => Object.assign(n, d.data() || {})); NETO = n; if (S.nf) drawMarkers(); if (openId) { const x = $('#netBox'); if (x) x.replaceWith(netBox(byId[openId])); } if (homeOn && homeCC && !$('#hq').value) renderHome(); }, () => {});
   db.collection('typ').onSnapshot(snap => { DOCN.typ = snap.docs.length; const n = {}; snap.docs.forEach(d => Object.assign(n, d.data() || {})); TYO = n; restyle(); if (homeOn && homeCC && !$('#hq').value) renderHome(); }, () => {});
