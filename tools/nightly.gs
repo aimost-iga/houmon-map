@@ -169,16 +169,26 @@ function run_(todayOverride) {
 
 /** 1人1日の訪問数（訪問・対面・獲得など）を day/<日付>_<人> の v に書く（業務管理アプリの成績で使う） */
 function saveVisits_(a){
-  const v = { doors: 0, face: 0, got: 0, away: 0, ihng: 0, fng: 0, again: 0, vac: 0 };
+  const v = { doors: 0, face: 0, got: 0, away: 0, ihng: 0, fng: 0, again: 0, vac: 0 }; const ts = [];
   for (const k in a.data) {
     const e = a.data[k];
     if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r]) continue;
     v.doors++; v[e.r] = (v[e.r] || 0) + 1;
     if (e.r === 'fng' || e.r === 'again' || e.r === 'got') v.face++;
+    if (e.t) ts.push(Number(e.t));
   }
+  v.span = spanOf_(ts);
   const f = {}; for (const k in v) f[k] = { integerValue: String(v[k]) };
   const body = { fields: { u: { stringValue: a.data.u || '' }, d: { stringValue: a.data.d }, v: { mapValue: { fields: f } } } };
   fsFetch_(FS + '/day/' + a.id + '?updateMask.fieldPaths=u&updateMask.fieldPaths=d&updateMask.fieldPaths=v', { method: 'patch', payload: JSON.stringify(body) });
+}
+
+/** 訪問の登録時刻から、訪販で実際に動いていた時間（ミリ秒）を出す。30分以上あいたら休憩とみなし、1件ごとに5分を足す */
+function spanOf_(ts) {
+  ts.sort((a, b) => a - b); let ms = 0, st = null, last = null;
+  ts.forEach(t => { if (st == null) { st = last = t; return; } if (t - last > 30 * 60000) { ms += last - st + 5 * 60000; st = t; } last = t; });
+  if (st != null) ms += last - st + 5 * 60000;
+  return ms;
 }
 
 /** 試し：明日の日付として動かす（今日の分まで書き写して消す） */
