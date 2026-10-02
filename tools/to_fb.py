@@ -758,7 +758,7 @@ s = s[:a0] + r"""function fireworks(level){
   level = level === true ? 2 : level === false ? 1 : (level || 0);
   let cv = document.getElementById('fw'); if (cv) cv.remove();
   cv = document.createElement('canvas'); cv.id = 'fw'; document.body.append(cv);
-  const dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+  const dpr = Math.min(1.5, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
   cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.scale(dpr, dpr);
   const COL = ['#ffd54a', '#ffffff', '#5CC2F2', '#ff7aa2', '#8ef0b0', '#9aa8ff', '#ffb04a', '#ff5e5e'];
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -916,6 +916,174 @@ rep("""  const st = mk('gotStamp'); st.className = lv >= 2 ? 'gold' : '';""",
     const dur = lv >= 3 ? 2600 : lv === 2 ? 2300 : 2000;
     setTimeout(() => jp.classList.add('out'), dur); setTimeout(() => jp.remove(), dur + 400); }
   const st = mk('gotStamp'); st.className = lv >= 2 ? 'gold' : ''; st.style.display = 'none';""")
+
+
+# ---------- 当たり演出 第2版：描画で作る本格版（暗転→衝撃→光線・玉ボケ・衝撃波・彫りの深いメダル・立体のクロム文字・光沢） ----------
+rep("""  // パチンコの当たり風の全画面演出（押せるまま・2秒少々で消える）
+  { const jp = mk('jp');""", """  jackpot(n, lv);
+  if (false) { const jp = mk('jp');""")
+rep("""function fbReady(){""", r"""// 当たり演出用の字体を先に読み込んでおく（初回でもすぐ出るように）
+try { document.fonts && document.fonts.load("80px 'Dela Gothic One'", '獲得神伝説本日件目0123456789!'); } catch(e){}
+function fbReady(){""")
+rep("""// 光・金のふち・大きな文字""", r"""// ===== 当たり演出（キャンバスで描く） =====
+function jackpot(n, lv){
+  if (reduceMotion()) return;
+  let cv = document.getElementById('jpc'); if (cv) cv.remove();
+  cv = document.createElement('canvas'); cv.id = 'jpc';
+  cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:3955;pointer-events:none';
+  document.body.append(cv);
+  const dpr = Math.min(1.5, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const cx = W / 2, cy = H * 0.44, R = Math.min(W * 0.46, 250);
+  const FONT = "'Dela Gothic One', 'BIZ UDPGothic', sans-serif";
+  const word = lv >= 3 ? '伝説!!' : lv === 2 ? '神!!' : '獲得!!';
+  const gold = lv >= 2;
+  const DUR = lv >= 3 ? 3000 : lv === 2 ? 2700 : 2400;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  // --- 文字を一度だけ別の紙に描いておく（立体の厚み・二重のふち・光沢のある中身） ---
+  const fs = Math.min(W * (word.length > 3 ? 0.2 : 0.26), 150);
+  const tc = document.createElement('canvas'), tg = tc.getContext('2d');
+  tg.font = `${fs}px ${FONT}`; const tw = tg.measureText(word).width;
+  const PAD = fs * 0.45, TW = Math.ceil(tw + PAD * 2), TH = Math.ceil(fs * 1.75);
+  tc.width = TW * dpr; tc.height = TH * dpr; tg.scale(dpr, dpr);
+  tg.font = `${fs}px ${FONT}`; tg.textAlign = 'center'; tg.textBaseline = 'middle'; tg.lineJoin = 'round';
+  const tx = TW / 2, ty = TH * 0.46, depth = Math.round(fs * 0.11);
+  // 後ろの光（1回だけ描く）
+  tg.save(); tg.shadowColor = gold ? 'rgba(255,200,40,.95)' : 'rgba(140,220,255,.95)'; tg.shadowBlur = fs * .3; tg.fillStyle = gold ? 'rgba(255,200,40,.6)' : 'rgba(140,220,255,.6)'; tg.lineWidth = fs * .2; tg.strokeStyle = tg.fillStyle; tg.strokeText(word, tx, ty); tg.restore();
+  // 厚み（下に向かって濃くなる金）
+  for (let d = depth; d >= 1; d--) { const k = d / depth; tg.fillStyle = `rgb(${Math.round(120 - 70 * k)},${Math.round(70 - 45 * k)},${Math.round(10)})`; tg.strokeStyle = tg.fillStyle; tg.lineWidth = fs * 0.16; tg.strokeText(word, tx, ty + d); tg.fillText(word, tx, ty + d); }
+  // 外側の濃いふち → 金のふち → 細い濃いふち
+  tg.lineWidth = fs * 0.2; tg.strokeStyle = '#140600'; tg.strokeText(word, tx, ty);
+  const gs = tg.createLinearGradient(0, ty - fs * 0.6, 0, ty + fs * 0.6);
+  [['0', '#fffbe0'], ['.25', '#ffd54a'], ['.5', '#9a6400'], ['.62', '#ffe680'], ['.85', '#c98a00'], ['1', '#fff2a8']].forEach(([o, c]) => gs.addColorStop(+o, c));
+  tg.lineWidth = fs * 0.12; tg.strokeStyle = gs; tg.strokeText(word, tx, ty);
+  tg.lineWidth = fs * 0.035; tg.strokeStyle = '#2a1000'; tg.strokeText(word, tx, ty);
+  // 中身：1件目は虹のクロム、2件目からは金のクロム（上が明るく、真ん中に反射の線）
+  const fg = tg.createLinearGradient(0, ty - fs * 0.5, 0, ty + fs * 0.5);
+  if (gold) [['0', '#ffffff'], ['.18', '#fff3b0'], ['.42', '#ffc928'], ['.5', '#a86a00'], ['.56', '#ffe680'], ['.8', '#ffb300'], ['1', '#fff0b0']].forEach(([o, c]) => fg.addColorStop(+o, c));
+  else [['0', '#ffffff'], ['.14', '#fff36b'], ['.3', '#ffaa00'], ['.46', '#ff3d6e'], ['.5', '#ffffff'], ['.55', '#d24dff'], ['.72', '#3d8bff'], ['.88', '#22e0ff'], ['1', '#b8ffd8']].forEach(([o, c]) => fg.addColorStop(+o, c));
+  tg.fillStyle = fg; tg.fillText(word, tx, ty);
+  // 上半分のつや
+  tg.save(); tg.globalCompositeOperation = 'source-atop';
+  const gl = tg.createLinearGradient(0, ty - fs * 0.5, 0, ty); gl.addColorStop(0, 'rgba(255,255,255,.55)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+  tg.fillStyle = gl; tg.fillRect(0, ty - fs * 0.55, TW, fs * 0.5); tg.restore();
+  // 文字の形（光沢を走らせるときの型）
+  const mc = document.createElement('canvas'); mc.width = tc.width; mc.height = tc.height; const mg = mc.getContext('2d'); mg.scale(dpr, dpr);
+  mg.font = `${fs}px ${FONT}`; mg.textAlign = 'center'; mg.textBaseline = 'middle'; mg.fillStyle = '#fff'; mg.fillText(word, tx, ty);
+  const sh = document.createElement('canvas'); sh.width = tc.width; sh.height = tc.height; const sg = sh.getContext('2d');
+
+  // --- 「本日 ○件目」のリボン ---
+  const rbText = `本日 ${n}件目`; const rfs = Math.min(W * 0.06, 28);
+  const drawRibbon = (y, sc) => {
+    g.save(); g.translate(cx, y); g.scale(sc, sc); g.rotate(-0.04);
+    g.font = `${rfs}px ${FONT}`; const rw = g.measureText(rbText).width + rfs * 1.8, rh = rfs * 1.7;
+    // 折り返しの端
+    g.fillStyle = '#7a0010';
+    [[-1], [1]].forEach(([s2]) => { g.beginPath(); g.moveTo(s2 * rw / 2, -rh * .2); g.lineTo(s2 * (rw / 2 + rfs * 1.1), -rh * .2); g.lineTo(s2 * (rw / 2 + rfs * .7), rh * .35); g.lineTo(s2 * (rw / 2 + rfs * 1.1), rh * .85); g.lineTo(s2 * rw / 2, rh * .85); g.closePath(); g.fill(); });
+    const rg = g.createLinearGradient(0, -rh / 2, 0, rh / 2); rg.addColorStop(0, '#ff6b6b'); rg.addColorStop(.45, '#e0001f'); rg.addColorStop(1, '#8a0012');
+    g.fillStyle = rg; g.beginPath(); g.roundRect(-rw / 2, -rh / 2, rw, rh, 8); g.fill();
+    g.lineWidth = 3; g.strokeStyle = '#ffd54a'; g.stroke();
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 5; g.strokeStyle = '#4a0008'; g.strokeText(rbText, 0, 1); g.fillStyle = '#fff'; g.fillText(rbText, 0, 1);
+    g.restore();
+  };
+
+  // --- 彫りの深いメダル ---
+  const drawMedal = (sc, rot) => {
+    g.save(); g.translate(cx, cy); g.scale(sc, sc);
+    // 外の光
+    const og = g.createRadialGradient(0, 0, R * .6, 0, 0, R * 1.35); og.addColorStop(0, 'rgba(255,214,90,.65)'); og.addColorStop(1, 'rgba(255,170,0,0)');
+    g.fillStyle = og; g.beginPath(); g.arc(0, 0, R * 1.35, 0, 7); g.fill();
+    // 縁（金属）
+    const rim = g.createLinearGradient(-R, -R, R, R); [['0', '#fff6c8'], ['.2', '#d99a00'], ['.45', '#fff1a0'], ['.6', '#9a6200'], ['.8', '#ffd54a'], ['1', '#7a4a00']].forEach(([o, c]) => rim.addColorStop(+o, c));
+    g.fillStyle = rim; g.beginPath(); g.arc(0, 0, R, 0, 7); g.fill();
+    // 縁のギザギザ（回る）
+    g.save(); g.rotate(rot); g.strokeStyle = 'rgba(90,50,0,.55)'; g.lineWidth = 2;
+    for (let i = 0; i < 72; i++) { const a = i / 72 * Math.PI * 2; g.beginPath(); g.moveTo(Math.cos(a) * R * .9, Math.sin(a) * R * .9); g.lineTo(Math.cos(a) * R * .985, Math.sin(a) * R * .985); g.stroke(); }
+    g.restore();
+    // 内側の盤
+    const inner = g.createRadialGradient(-R * .25, -R * .3, R * .05, 0, 0, R * .86);
+    if (gold) { inner.addColorStop(0, '#fff8d0'); inner.addColorStop(.35, '#ffcf40'); inner.addColorStop(.75, '#c47f00'); inner.addColorStop(1, '#6a3c00'); }
+    else { inner.addColorStop(0, '#d8f4ff'); inner.addColorStop(.35, '#4fb0ff'); inner.addColorStop(.75, '#1f2bab'); inner.addColorStop(1, '#0b0d3a'); }
+    g.fillStyle = inner; g.beginPath(); g.arc(0, 0, R * .86, 0, 7); g.fill();
+    g.lineWidth = R * .03; g.strokeStyle = '#3a2000'; g.stroke();
+    // 内側の放射の線
+    g.save(); g.rotate(-rot * .6); g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2; g.strokeStyle = `rgba(255,255,255,${i % 2 ? .07 : .14})`; g.lineWidth = R * .05; g.beginPath(); g.moveTo(Math.cos(a) * R * .2, Math.sin(a) * R * .2); g.lineTo(Math.cos(a) * R * .84, Math.sin(a) * R * .84); g.stroke(); }
+    g.restore();
+    // 縁を回る光
+    g.save(); g.rotate(rot * 2.2); const sw = g.createLinearGradient(-R, 0, R, 0); sw.addColorStop(0, 'rgba(255,255,255,0)'); sw.addColorStop(.5, 'rgba(255,255,255,.75)'); sw.addColorStop(1, 'rgba(255,255,255,0)');
+    g.strokeStyle = sw; g.lineWidth = R * .06; g.beginPath(); g.arc(0, 0, R * .93, -0.6, 0.6); g.stroke(); g.restore();
+    g.restore();
+  };
+
+  // --- 背景の部品 ---
+  const bokeh = Array.from({ length: 46 }, () => ({ x: rnd(0, W), y: rnd(0, H), r: rnd(6, 26), vx: rnd(-.25, .25), vy: rnd(-.6, -.1), c: Math.random() < .6 ? [255, 214, 90] : Math.random() < .5 ? [255, 255, 255] : [120, 200, 255], a: rnd(.15, .45), ph: rnd(0, 6) }));
+  const glints = Array.from({ length: lv >= 3 ? 34 : lv === 2 ? 26 : 18 }, () => ({ x: rnd(.04, .96) * W, y: rnd(.06, .8) * H, s: rnd(6, 16), d: rnd(0, 1600), p: rnd(500, 900) }));
+  const star = (x, y, s, a) => { g.save(); g.globalAlpha = a; g.translate(x, y); g.fillStyle = '#fff';
+    const sg2 = g.createRadialGradient(0, 0, 0, 0, 0, s * 1.6); sg2.addColorStop(0, 'rgba(255,240,180,.9)'); sg2.addColorStop(1, 'rgba(255,200,60,0)'); g.fillStyle = sg2; g.beginPath(); g.arc(0, 0, s * 1.6, 0, 7); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.moveTo(0, -s * 2); g.lineTo(s * .22, -s * .22); g.lineTo(s * 2, 0); g.lineTo(s * .22, s * .22); g.lineTo(0, s * 2); g.lineTo(-s * .22, s * .22); g.lineTo(-s * 2, 0); g.lineTo(-s * .22, -s * .22); g.closePath(); g.fill(); g.restore(); };
+
+  const L = Math.hypot(W, H);
+  const RC = document.createElement('canvas'), RS = Math.ceil(L * 1.5); RC.width = RS; RC.height = RS; const rg2 = RC.getContext('2d');
+  rg2.globalCompositeOperation = 'lighter';
+  for (let i = 0, rays = 28; i < rays; i++) { const a = i / rays * Math.PI * 2, w = (i % 2 ? .05 : .085), hue = i * 360 / rays;
+    const lg = rg2.createRadialGradient(RS / 2, RS / 2, R * .3, RS / 2, RS / 2, RS / 2);
+    lg.addColorStop(0, `hsla(${gold ? 42 + (i % 3) * 6 : hue},100%,${gold ? 62 : 60}%,.55)`); lg.addColorStop(1, `hsla(${gold ? 40 : hue},100%,55%,0)`);
+    rg2.fillStyle = lg; rg2.beginPath(); rg2.moveTo(RS / 2, RS / 2); rg2.arc(RS / 2, RS / 2, RS / 2, a - w, a + w); rg2.closePath(); rg2.fill(); }
+  // 玉ボケ：1つだけ描いておき、使い回す
+  const BK = {}; const bokehImg = c => { const key = c.join(','); if (BK[key]) return BK[key]; const bc = document.createElement('canvas'); bc.width = bc.height = 64; const bg2 = bc.getContext('2d');
+    const gr = bg2.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${key},1)`); gr.addColorStop(.7, `rgba(${key},.5)`); gr.addColorStop(1, `rgba(${key},0)`); bg2.fillStyle = gr; bg2.fillRect(0, 0, 64, 64); return BK[key] = bc; };
+  const start = performance.now();
+  const ease = k => 1 - Math.pow(1 - k, 3);
+  const back = k => { const c1 = 2.2, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
+  const tick = now => {
+    const t = now - start; if (t > DUR) { cv.remove(); return; }
+    const fade = t > DUR - 380 ? (DUR - t) / 380 : 1;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); g.globalAlpha = fade; g.globalCompositeOperation = 'source-over';
+    // 暗転（色が映えるように）
+    const dk = Math.min(1, t / 120) * .78; const bg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * .8);
+    bg.addColorStop(0, `rgba(60,10,90,${dk * .55})`); bg.addColorStop(1, `rgba(5,3,20,${dk})`); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    // 光線（やわらかく、色が回る）
+    g.globalCompositeOperation = 'lighter';
+    g.save(); g.translate(cx, cy); g.rotate(t / 1400); g.drawImage(RC, -RS / 2, -RS / 2); g.restore();
+    // 玉ボケ
+    for (const b of bokeh) { b.x += b.vx; b.y += b.vy; g.globalAlpha = fade * b.a * (.6 + .4 * Math.sin(t / 300 + b.ph)); g.drawImage(bokehImg(b.c), b.x - b.r, b.y - b.r, b.r * 2, b.r * 2); }
+    g.globalAlpha = fade;
+    // 衝撃波（ドンの瞬間に2重の輪）
+    for (const [d0, col] of [[160, '255,240,170'], [260, '160,220,255']]) { const k = (t - d0) / 700; if (k < 0 || k > 1) continue;
+      g.strokeStyle = `rgba(${col},${(1 - k) * .9})`; g.lineWidth = 14 * (1 - k) + 2; g.beginPath(); g.arc(cx, cy, R * (.6 + k * 2.4), 0, 7); g.stroke(); }
+    // 横に伸びる光（レンズの光）
+    { const a = Math.max(0, 1 - Math.abs(t - 260) / 900) * .9; if (a > 0) { const fl = g.createLinearGradient(0, cy, W, cy); fl.addColorStop(0, 'rgba(255,255,255,0)'); fl.addColorStop(.5, `rgba(255,250,220,${a})`); fl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = fl; g.fillRect(0, cy - 3, W, 6); g.fillStyle = `rgba(255,240,200,${a * .25})`; g.fillRect(0, cy - 14, W, 28); } }
+    g.globalCompositeOperation = 'source-over';
+    // メダル
+    const mk2 = Math.min(1, Math.max(0, (t - 60) / 420)); drawMedal(back(mk2) * (1 + .02 * Math.sin(t / 120)), t / 900);
+    // 文字（大きいところから叩きつけ → 脈打つ）
+    const k = Math.min(1, Math.max(0, (t - 120) / 380));
+    if (k > 0) { const sc = k < 1 ? 2.6 - 1.6 * back(k) : 1 + .045 * Math.sin((t - 500) / 95);
+      // 光沢の帯を文字の型の上に走らせる
+      sg.setTransform(1, 0, 0, 1, 0, 0); sg.clearRect(0, 0, sh.width, sh.height); sg.drawImage(mc, 0, 0); sg.globalCompositeOperation = 'source-in';
+      const sx = ((t - 520) % 1100) / 1100 * (sh.width * 1.8) - sh.width * .4; const sgd = sg.createLinearGradient(sx, 0, sx + sh.width * .25, sh.height);
+      sgd.addColorStop(0, 'rgba(255,255,255,0)'); sgd.addColorStop(.5, 'rgba(255,255,255,.85)'); sgd.addColorStop(1, 'rgba(255,255,255,0)'); sg.fillStyle = sgd; sg.fillRect(0, 0, sh.width, sh.height); sg.globalCompositeOperation = 'source-over';
+      g.save(); g.translate(cx, cy - fs * .05); g.rotate(-0.07); g.scale(sc, sc); g.transform(1, 0, -0.14, 1, 0, 0);
+      g.globalAlpha = fade * Math.min(1, k * 2);
+      g.drawImage(tc, -TW / 2, -TH * .46, TW, TH);
+      if (t > 520) g.drawImage(sh, -TW / 2, -TH * .46, TW, TH);
+      g.restore(); }
+    // リボン
+    const rk = Math.min(1, Math.max(0, (t - 420) / 320)); if (rk > 0) { g.globalAlpha = fade; drawRibbon(cy + fs * .78, back(rk)); }
+    // キラッと光る星
+    g.globalCompositeOperation = 'lighter';
+    for (const s3 of glints) { const lt = (t - s3.d) % (s3.p * 2); if (t < s3.d || lt > s3.p) continue; const a = Math.sin(lt / s3.p * Math.PI); star(s3.x, s3.y, s3.s * (.6 + .6 * a), a * fade); }
+    g.globalCompositeOperation = 'source-over';
+    // 最初の白い光
+    if (t < 220) { g.globalAlpha = (1 - t / 220) * .85; g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); }
+    g.globalAlpha = 1;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+// 光・金のふち・大きな文字""")
 
 open(os.path.join('/home/claude/houmon-map', 'index.html'), 'w', encoding='utf-8').write(s)
 print('ok', len(s))
