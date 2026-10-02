@@ -183,20 +183,17 @@ function saveVisits_(a){
   fsFetch_(FS + '/day/' + a.id + '?updateMask.fieldPaths=u&updateMask.fieldPaths=d&updateMask.fieldPaths=v', { method: 'patch', payload: JSON.stringify(body) });
 }
 
-/** 訪問の登録時刻から、訪販で動いていた時間（ミリ秒）を出す。
- *  30分以上あいたら区切る。20秒未満の間隔、または違う建物なのに1分未満の間隔は「あとからのまとめ入力」とみなして時間に足さない。
+/** 訪問の登録時刻から、訪販で動いていた時間帯の長さ（ミリ秒）を出す。休憩は業務管理アプリ側で引く。
+ *  20秒未満の間隔、または違う建物なのに1分未満の間隔は「あとからのまとめ入力」とみなす（3件以上続くかたまりは頭の1件も含む）。
+ *  始まり＝最初の本当の登録、終わり＝まとめ入力を除いた最後の登録。
  *  返り値：{ ms, batch（まとめ入力とみた件数）, run（まとめ入力が続いた最長の件数） } */
 function spanOf_(xs) {
-  xs.sort((a, b) => a.t - b.t); let ms = 0, st = null, last = null, run = 0, batch = 0, runMax = 0;
-  for (let i = 0; i < xs.length; i++) {
-    const x = xs[i], p = xs[i - 1]; const g = p ? x.t - p.t : Infinity;
-    const fast = p && (g < 20000 || (x.b !== p.b && g < 60000));
-    run = fast ? run + 1 : 0; if (fast) batch++; runMax = Math.max(runMax, run);
-    if (fast) continue;
-    if (st == null || g > 30 * 60000) { if (st != null) ms += last - st + 5 * 60000; st = x.t; }
-    last = x.t;
-  }
-  if (st != null) ms += last - st + 5 * 60000;
+  xs.sort((a, b) => a.t - b.t);
+  const fast = xs.map((x, i) => i > 0 && (x.t - xs[i - 1].t < 20000 || (x.b !== xs[i - 1].b && x.t - xs[i - 1].t < 60000)));
+  const runAt = i => { let n = 0; while (i < fast.length && fast[i]) { n++; i++; } return n; };
+  const real = xs.filter((x, i) => !(fast[i] || (fast[i + 1] && runAt(i + 1) >= 3)));
+  let run = 0, runMax = 0, batch = 0; fast.forEach(f => { run = f ? run + 1 : 0; runMax = Math.max(runMax, run); if (f) batch++; });
+  const ms = real.length ? real[real.length - 1].t - real[0].t : 0;
   return { ms, batch, run: runMax };
 }
 
