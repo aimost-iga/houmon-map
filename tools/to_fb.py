@@ -822,5 +822,51 @@ rep("""      if (wasGot) { TODAY.pending = (TODAY.pending || 0) + 1; updateStrip
 rep("""  if (navigator.vibrate) { try { navigator.vibrate(n >= 2 ? [60, 40, 60, 40, 120] : [80]); } catch(e){} }
   clearTimeout(gotBand._t);""", """  clearTimeout(gotBand._t);""")
 
+
+# ---------- 獲得の文字を豪華に：太い見出し用の字体・金属のような光沢・キラキラ・光の走り ----------
+# 字体は使う文字だけを小さく読み込む（すぐ出るように）
+GLYPHS = '獲得神伝説本日件目もう0123456789!！'
+rep('<link rel="manifest" href="manifest.webmanifest">\n',
+    '<link rel="manifest" href="manifest.webmanifest">\n'
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap&text=' + __import__('urllib.parse').parse.quote(GLYPHS) + '">\n')
+LUX_CSS = """
+#gotStamp{padding:14px 30px 14px;border-radius:20px;border:0;overflow:visible;
+  background:radial-gradient(120% 140% at 50% 0%,#2a3db5 0%,#14178a 55%,#0b0d3a 100%);
+  box-shadow:0 0 0 3px #ffd54a,0 0 0 6px rgba(255,213,74,.25),0 12px 44px rgba(0,0,0,.45),0 0 40px rgba(255,213,74,.35)}
+#gotStamp::before{content:"";position:absolute;inset:-3px;border-radius:22px;padding:3px;pointer-events:none;
+  background:conic-gradient(from var(--ga,0deg),#fff6c2,#ffd54a,#f5b700,#fff6c2,#ffd54a,#f5b700,#fff6c2);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:gaSpin 1.6s linear infinite}
+@property --ga{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes gaSpin{to{--ga:360deg}}
+#gotStamp .s1{font-family:'Dela Gothic One',var(--font);font-weight:400;font-size:56px;line-height:1.05;letter-spacing:.04em;position:relative;
+  background:linear-gradient(180deg,#ffffff 0%,#e3f4ff 45%,#9fdcff 55%,#ffffff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-stroke:1.5px rgba(8,10,40,.55);paint-order:stroke fill;filter:drop-shadow(0 3px 0 #0b0d3a) drop-shadow(0 0 14px rgba(159,220,255,.6))}
+#gotStamp.gold .s1{background:linear-gradient(180deg,#fffbe6 0%,#ffe27a 42%,#f5b700 56%,#fff0a8 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 #0b0d3a) drop-shadow(0 0 16px rgba(255,213,74,.7))}
+#gotStamp .s2{font-family:'Dela Gothic One',var(--font);font-weight:400;font-size:16px;color:#ffd54a;letter-spacing:.14em;margin-top:4px}
+/* 文字の上を光が走る */
+#gotStamp .gl{position:absolute;inset:0;border-radius:20px;overflow:hidden;pointer-events:none}
+#gotStamp .gl::after{content:"";position:absolute;top:-20%;bottom:-20%;width:38%;left:-50%;transform:skewX(-20deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:glSweep 1.1s .35s ease-out 2}
+@keyframes glSweep{to{left:120%}}
+/* キラキラ */
+#gotStamp .spk{position:absolute;color:#fff6c2;font-size:18px;line-height:1;text-shadow:0 0 8px #ffd54a,0 0 16px #ffd54a;opacity:0;animation:spk 1.2s ease-in-out infinite}
+#gotStamp.gold .spk{color:#fff}
+@keyframes spk{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(45deg)}}
+/* 下の帯の数字とひとことも同じ字体で */
+#gotBand .num,#gotBand .msg{font-family:'Dela Gothic One',var(--font);font-weight:400}
+#gotBand.kami .msg,#gotBand.kami .num{color:#ffd54a;text-shadow:0 0 10px rgba(255,213,74,.55),0 2px 0 #0b0d3a}
+#gotBand .msg{text-shadow:0 0 10px rgba(159,220,255,.5),0 2px 0 #0b0d3a}
+@media (prefers-reduced-motion:reduce){#gotStamp::before,#gotStamp .gl::after,#gotStamp .spk{animation:none}#gotStamp .spk{opacity:.9}}
+"""
+i = s.index('</style>')
+s = s[:i] + LUX_CSS + s[i:]
+rep("""  st.append(el('span', { class: 's1', text: lv >= 3 ? '伝説!!' : lv === 2 ? '神!!' : '獲得!!' }), el('span', { class: 's2', text: `本日 ${n}件目` }));""",
+    """  st.append(el('span', { class: 'gl' }), el('span', { class: 's1', text: lv >= 3 ? '伝説!!' : lv === 2 ? '神!!' : '獲得!!' }), el('span', { class: 's2', text: `本日 ${n}件目` }));
+  // キラキラを板のまわりに散らす（件数が多いほど多く）
+  const spots = [[-6, 10], [104, 8], [-4, 82], [102, 86], [20, -14], [80, -12], [50, 104], [8, 48], [96, 46]];
+  spots.slice(0, lv >= 3 ? 9 : lv === 2 ? 7 : 5).forEach(([x, y], i) => st.append(el('span', { class: 'spk', text: '✦', style: `left:${x}%;top:${y}%;animation-delay:${(i * 0.13).toFixed(2)}s;font-size:${14 + (i % 3) * 5}px` })));""")
+
 open(os.path.join('/home/claude/houmon-map', 'index.html'), 'w', encoding='utf-8').write(s)
 print('ok', len(s))
