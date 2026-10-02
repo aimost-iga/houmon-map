@@ -404,5 +404,74 @@ rep("""  META = bj; B = bj.buildings; B.forEach(b => byId[b.id] = b);""",
     """  META = bj; B = bj.buildings; B.forEach(b => byId[b.id] = b);
   { const m = FB.me() || {}; const w = document.getElementById('hWho'); if (w) w.textContent = (m.name || '') + ({ admin: '（管理者）', contractor: '（業務委託）' }[m.role] || ''); }""")
 
+
+# ---------- 獲得したら：今日の獲得数を画面の上に大きく出す ----------
+CELEB_CSS = """
+#celeb{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);z-index:4000;width:min(92vw,420px);
+  border-radius:18px;padding:14px 18px 16px;color:#fff;text-align:center;cursor:pointer;overflow:hidden;
+  background:linear-gradient(120deg,#1B1FA8 0%,#2E51C0 45%,#5CC2F2 100%);box-shadow:0 14px 40px rgba(27,31,168,.45);
+  transition:transform .45s cubic-bezier(.2,1.4,.4,1)}
+#celeb.show{transform:translate(-50%,0)}
+#celeb .lab{font-size:12.5px;letter-spacing:.14em;font-weight:700;opacity:.9}
+#celeb .num{font-size:46px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums;text-shadow:0 2px 10px rgba(0,0,0,.25)}
+#celeb .num small{font-size:20px;margin-left:4px}
+#celeb .msg{font-size:24px;font-weight:700;letter-spacing:.06em;margin-top:2px;text-shadow:0 2px 10px rgba(0,0,0,.25)}
+#celeb.kami .msg{font-size:34px;background:linear-gradient(90deg,#fff6c2,#ffd54a,#fff6c2);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+#celeb .shine{position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);transform:translateX(-100%)}
+#celeb.show .shine{animation:celebShine 1.1s .35s ease-out}
+#celeb .sp{position:absolute;width:7px;height:7px;border-radius:2px;opacity:0}
+#celeb.show .sp{animation:celebSp 1.2s ease-out forwards}
+@keyframes celebShine{to{transform:translateX(100%)}}
+@keyframes celebSp{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(260deg)}}
+@media (prefers-reduced-motion:reduce){#celeb{transition:none}#celeb .shine,#celeb .sp{display:none}}
+"""
+i = s.index('</style>')
+s = s[:i] + CELEB_CSS + s[i:]
+
+# 今日の自分の獲得を数える（その日の活動記録から。取り消したものは除く）
+rep("""  todayUnsub = FB.act.watchDay(d, docs => {
+    const by = {};
+    for (const data of docs) for (const k in data) { const v = data[k]; if (v && v.r === 'away' && !v.x && v.bid) (by[v.bid] = by[v.bid] || {})[k] = v; }""",
+"""  todayUnsub = FB.act.watchDay(d, docs => {
+    const by = {}; const got = new Set(), gone = new Set();
+    for (const data of docs) for (const k in data) { const v = data[k]; if (v && v.r === 'away' && !v.x && v.bid) (by[v.bid] = by[v.bid] || {})[k] = v;
+      if (v && v.r === 'got' && v.u === me.id) (v.x ? gone : got).add(k); }
+    TODAY.got = got; TODAY.gotGone = gone;""")
+rep("""    try { await upsert(FB.act.ref(ymd(t)), { u: me.id, d: ymd(t), [k]: Object.assign({ bid: b.id, cc: b.cc }, entry) }); } catch(e){}""",
+    """    try { await upsert(FB.act.ref(ymd(t)), { u: me.id, d: ymd(t), [k]: Object.assign({ bid: b.id, cc: b.cc }, entry) }); } catch(e){}
+    if (f.r === 'got') { TODAY.gotLocal = TODAY.gotLocal || new Set(); TODAY.gotLocal.add(k); }""")
+rep("""function todayAway(bid){""", """function myGotToday(){
+  const s = new Set([...(TODAY.got || []), ...(TODAY.gotLocal || [])]);
+  for (const k of (TODAY.gotGone || [])) s.delete(k);
+  return s.size;
+}
+function celebrate(n){
+  if (!n) return;
+  let c = document.getElementById('celeb');
+  if (c) c.remove();
+  const msg = n === 1 ? 'もう1件!!' : n === 2 ? '神!!' : '伝説!!';
+  c = el('div', { id: 'celeb', class: n >= 2 ? 'kami' : '', role: 'status', 'aria-live': 'polite', onclick: () => c.classList.remove('show') },
+    el('div', { class: 'shine' }),
+    el('div', { class: 'lab', text: '本日の獲得' }),
+    el('div', { class: 'num' }, String(n), el('small', { text: '件' })),
+    el('div', { class: 'msg', text: msg }));
+  const cols = ['#ffd54a', '#ffffff', '#9fe3ff', '#ff8fb1', '#b9f6ca'];
+  for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2, r = 70 + Math.random() * 90;
+    c.append(el('i', { class: 'sp', style: `left:50%;top:55%;background:${cols[i % cols.length]};--dx:${Math.round(Math.cos(a) * r)}px;--dy:${Math.round(Math.sin(a) * r)}px;animation-delay:${(Math.random() * .25).toFixed(2)}s` })); }
+  document.body.append(c);
+  requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add('show')));
+  if (navigator.vibrate) { try { navigator.vibrate(n >= 2 ? [60, 40, 60, 40, 120] : [80]); } catch(e){} }
+  setTimeout(() => { c.classList.remove('show'); setTimeout(() => c.remove(), 600); }, 4200);
+}
+function todayAway(bid){""")
+rep("""      await register(b, r, form);
+      toast(`${r}号室を「${RES[form.r]}」で登録しました`);
+      closeRoom();""",
+"""      const wasGot = form.r === 'got';
+      await register(b, r, form);
+      toast(`${r}号室を「${RES[form.r]}」で登録しました`);
+      closeRoom();
+      if (wasGot) celebrate(myGotToday());""")
+
 open(os.path.join('/home/claude/houmon-map', 'index.html'), 'w', encoding='utf-8').write(s)
 print('ok', len(s))
