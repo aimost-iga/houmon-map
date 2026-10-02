@@ -2036,15 +2036,8 @@ function stripMsg(n){
   if (n >= 3) return night ? '伝説!! 最高の締めを!' : '伝説!! まだ伸ばせる!';
   if (n === 2) return night ? '神!! ラスト気合いでもう1件!' : '神!! この勢いで3件目!';
   if (n === 1) return night ? 'ラスト気合い!! あと1件!' : eve ? '夕方は会える時間! もう1件!!' : 'もう1件!!';
-  // 0件：時間帯ごとに数パターン。同じ日・同じ時間帯の間は同じ言葉（ころころ変わらないように）
-  const d = Math.floor((Date.now() + 9 * 3600e3) / 864e5);
-  const pick = arr => arr[d % arr.length];
-  const doors = TODAY.myDoors || 0;
-  if (doors >= 10) return night ? `ラスト気合い!! ${doors}軒の粘りが実る` : `${doors}軒たたいた。当たりは近い!`;
-  if (night) return pick(['ラスト気合い!! 次のドアで1件', 'ラスト気合い!! 粘った人に1件', 'ラスト気合い!! 最後まで可能性']);
-  if (eve) return pick(['帰宅ラッシュは会えるチャンス!', 'ここからが本番。会える時間!', '夕方は在宅の時間。決めよう!']);
-  if (h < 12) return pick(['1件目は、まだ誰のものでもない', '最初のピンポンが今日のスイッチ', '朝イチの1件で1日が軽くなる']);
-  return pick(['あと1軒先に今日の1件がある', '断られた数だけ獲得に近づく', 'まだ折り返し。ここから!']);
+  // 0件：いつでもこの一言
+  return '次のピンポンでくるかも！？';
 }
 function updateStrip(){
   const c = document.getElementById('gotStrip'); if (!c) return;
