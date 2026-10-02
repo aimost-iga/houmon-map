@@ -53,5 +53,29 @@ service cloud.firestore {
       allow update: if isUser() && resource.data.u == em() && request.resource.data.u == em();
       allow delete: if isAdmin();
     }
+
+    // ---- 業務管理アプリ（https://aimost-iga.github.io/gyomu/）----
+    // 業務の記録（予定・開始/終了・反響対応・配布・日報）：1日1人1文書。ずっと残す。本人だけが書ける
+    match /day/{id} {
+      allow read: if isStaff() || (isUser() && (resource == null || resource.data.u == em()));
+      allow create: if isUser() && request.resource.data.u == em();
+      allow update: if isUser() && resource.data.u == em() && request.resource.data.u == em();
+      allow delete: if false;
+    }
+    // 会社の設定（お題の基準・チームお題・ご褒美・お知らせの鍵）
+    match /cfg/{id} {
+      allow read: if isUser();
+      allow write: if isAdmin();
+    }
+    // スマホのお知らせの受け取り先と許可の状態：本人が書き、社員・管理者が見られる
+    match /push/{id} {
+      allow read: if isStaff() || (isUser() && (resource == null || resource.data.u == em()));
+      allow write: if isUser() && request.resource.data.u == em() && (resource == null || resource.data.u == em());
+    }
+    // 自動のお知らせの回数（Apps Script が書く）
+    match /ntc/{d} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
   }
 }
