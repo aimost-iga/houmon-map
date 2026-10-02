@@ -868,5 +868,54 @@ rep("""  st.append(el('span', { class: 's1', text: lv >= 3 ? '伝説!!' : lv ===
   const spots = [[-6, 10], [104, 8], [-4, 82], [102, 86], [20, -14], [80, -12], [50, 104], [8, 48], [96, 46]];
   spots.slice(0, lv >= 3 ? 9 : lv === 2 ? 7 : 5).forEach(([x, y], i) => st.append(el('span', { class: 'spk', text: '✦', style: `left:${x}%;top:${y}%;animation-delay:${(i * 0.13).toFixed(2)}s;font-size:${14 + (i % 3) * 5}px` })));""")
 
+
+# ---------- パチンコの「当たり」風：虹の光線・金のメダル・虹色の極太文字・ゆれ ----------
+JP_CSS = """
+#jp{position:fixed;inset:0;z-index:3955;pointer-events:none;overflow:hidden;opacity:1;transition:opacity .35s}
+#jp.out{opacity:0}
+#jp .rays{position:absolute;left:50%;top:44%;width:260vmax;height:260vmax;transform:translate(-50%,-50%);opacity:.92;
+  background:repeating-conic-gradient(from 0deg,#ff1f5a 0 7.5deg,#ff9a00 7.5deg 15deg,#ffe600 15deg 22.5deg,#2bff88 22.5deg 30deg,#00c8ff 30deg 37.5deg,#7a5cff 37.5deg 45deg,#ff3bd4 45deg 52.5deg,#ffffff 52.5deg 54deg);
+  -webkit-mask:radial-gradient(circle at 50% 50%,#000 0 9%,rgba(0,0,0,.9) 16%,rgba(0,0,0,.55) 24%,transparent 36%);mask:radial-gradient(circle at 50% 50%,#000 0 9%,rgba(0,0,0,.9) 16%,rgba(0,0,0,.55) 24%,transparent 36%);
+  animation:jpSpin 2.6s linear,jpHue 1.3s linear infinite}
+@keyframes jpSpin{to{transform:translate(-50%,-50%) rotate(140deg)}}
+@keyframes jpHue{to{filter:hue-rotate(360deg)}}
+#jp .glow{position:absolute;left:50%;top:44%;width:120vmin;height:120vmin;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.95) 0%,rgba(255,240,170,.85) 18%,rgba(255,200,40,.45) 34%,rgba(255,120,0,0) 60%);animation:jpPulse .5s ease-in-out infinite alternate}
+@keyframes jpPulse{to{transform:translate(-50%,-50%) scale(1.08)}}
+#jp .disc{position:absolute;left:50%;top:44%;width:min(78vw,420px);aspect-ratio:1;transform:translate(-50%,-50%) scale(.2);border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff7c8 0%,#ffd54a 30%,#e0a100 58%,#a86b00 80%,#ffd54a 100%);
+  box-shadow:0 0 0 6px #fff1a8,0 0 0 12px #c98a00,0 0 40px 10px rgba(255,213,74,.9),inset 0 0 40px rgba(120,60,0,.6);animation:jpDisc .5s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes jpDisc{to{transform:translate(-50%,-50%) scale(1)}}
+#jp .word{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;white-space:nowrap}
+#jp .w1{display:block;font-family:'Dela Gothic One',var(--font);font-weight:400;font-size:min(24vw,130px);line-height:1;letter-spacing:.02em;
+  background:linear-gradient(180deg,#ffffff 0%,#fff35c 16%,#ffb300 30%,#ff3b5c 46%,#ff3bd4 58%,#7a5cff 72%,#00c8ff 86%,#7dffb0 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:4px #2b1200;paint-order:stroke fill;
+  filter:drop-shadow(0 3px 0 #ffd54a) drop-shadow(0 6px 0 #b8860b) drop-shadow(0 10px 0 #5a3200) drop-shadow(0 0 22px rgba(255,240,120,.95));
+  transform:skewX(-8deg) rotate(-5deg);animation:jpSlam .55s cubic-bezier(.2,1.7,.35,1) both,jpBeat .42s .6s ease-in-out infinite alternate}
+@keyframes jpSlam{0%{opacity:0;transform:skewX(-8deg) rotate(-5deg) scale(3.2)}60%{opacity:1}100%{opacity:1;transform:skewX(-8deg) rotate(-5deg) scale(1)}}
+@keyframes jpBeat{to{transform:skewX(-8deg) rotate(-5deg) scale(1.06)}}
+#jp .rib{display:inline-block;margin-top:10px;padding:6px 22px 7px;font-family:'Dela Gothic One',var(--font);font-weight:400;font-size:min(6.2vw,28px);letter-spacing:.12em;color:#fff;
+  background:linear-gradient(180deg,#ff4d4d,#c80018);border:3px solid #ffd54a;border-radius:10px;box-shadow:0 4px 0 #7a0010,0 0 18px rgba(255,80,80,.7);
+  text-shadow:0 2px 0 #6a0010;transform:rotate(-3deg) scale(0);animation:jpRib .4s .35s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes jpRib{to{transform:rotate(-3deg) scale(1)}}
+#jp .st{position:absolute;color:#fff;text-shadow:0 0 10px #ffe600,0 0 20px #ff9a00;opacity:0;animation:spk .9s ease-in-out infinite}
+#fw{z-index:3970!important}
+#app.jpShake{animation:jpShake .38s linear}
+@keyframes jpShake{10%{transform:translate(-6px,3px)}20%{transform:translate(6px,-4px)}30%{transform:translate(-5px,-3px)}40%{transform:translate(5px,4px)}50%{transform:translate(-3px,2px)}60%{transform:translate(3px,-2px)}75%{transform:translate(-2px,1px)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){#jp .rays,#jp .glow,#jp .w1,#jp .st{animation:none}#jp .rays{display:none}#jp .disc,#jp .rib{animation:none;transform:translate(-50%,-50%)}#jp .rib{transform:none}#app.jpShake{animation:none}}
+"""
+i = s.index('</style>')
+s = s[:i] + JP_CSS + s[i:]
+rep("""  const st = mk('gotStamp'); st.className = lv >= 2 ? 'gold' : '';""",
+"""  // パチンコの当たり風の全画面演出（押せるまま・2秒少々で消える）
+  { const jp = mk('jp'); const word = lv >= 3 ? '伝説!!' : lv === 2 ? '神!!' : '獲得!!';
+    jp.append(el('div', { class: 'rays' }), el('div', { class: 'glow' }), el('div', { class: 'disc' }),
+      el('div', { class: 'word' }, el('span', { class: 'w1', text: word }), el('span', { class: 'rib', text: `本日 ${n}件目` })));
+    for (let i = 0; i < (lv >= 3 ? 22 : lv === 2 ? 16 : 11); i++) jp.append(el('span', { class: 'st', text: '✦', style: `left:${(Math.random() * 92 + 2).toFixed(1)}%;top:${(Math.random() * 70 + 8).toFixed(1)}%;font-size:${14 + Math.random() * 26 | 0}px;animation-delay:${(Math.random() * .8).toFixed(2)}s` }));
+    const app = document.getElementById('app'); if (app && !reduceMotion()) { app.classList.remove('jpShake'); void app.offsetWidth; app.classList.add('jpShake'); setTimeout(() => app.classList.remove('jpShake'), 450); }
+    const dur = lv >= 3 ? 2600 : lv === 2 ? 2300 : 2000;
+    setTimeout(() => jp.classList.add('out'), dur); setTimeout(() => jp.remove(), dur + 400); }
+  const st = mk('gotStamp'); st.className = lv >= 2 ? 'gold' : ''; st.style.display = 'none';""")
+
 open(os.path.join('/home/claude/houmon-map', 'index.html'), 'w', encoding='utf-8').write(s)
 print('ok', len(s))
