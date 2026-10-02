@@ -59,6 +59,7 @@ async function boot(){
   await fbReady();
   const st = await FB.whenSignedIn();
   if (st.state !== 'in') { showGate(st.state, st.email); return; }
+  updateStrip();
   const [mj, aj, rj] = await Promise.all([
     FB.loadMaster((n, all) => { $('#loading').textContent = `建物リストを読み込んでいます…（${n}/${all}）`; }),
     fetch('areas.json').then(r => r.json()), fetch('rail.json').then(r => r.json())]);
@@ -456,7 +457,7 @@ rep("""    try { await upsert(FB.act.ref(ymd(t)), { u: me.id, d: ymd(t), [k]: Ob
 rep("""function todayAway(bid){""", """function myGotToday(){
   const s = new Set([...(TODAY.got || []), ...(TODAY.gotLocal || [])]);
   for (const k of (TODAY.gotGone || [])) s.delete(k);
-  return s.size;
+  return s.size + (TODAY.pending || 0);
 }
 const GOT_MSG = n => n <= 1 ? 'もう1件!!' : n === 2 ? '神!!' : '伝説!!';
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -508,9 +509,9 @@ rep("""      await register(b, r, form);
       toast(`${r}号室を「${RES[form.r]}」で登録しました`);
       closeRoom();""",
 """      const wasGot = form.r === 'got';
-      if (wasGot) { gotBand(myGotToday() + 1); fireworks(myGotToday() + 1 >= 2); }
-      try { await register(b, r, form); }
-      catch(err){ if (wasGot) { const c = document.getElementById('gotBand'); if (c) c.remove(); } throw err; }
+      if (wasGot) { TODAY.pending = (TODAY.pending || 0) + 1; updateStrip(); gotBand(myGotToday()); fireworks(myGotToday() >= 2); }
+      try { await register(b, r, form); if (wasGot) { TODAY.pending = Math.max(0, TODAY.pending - 1); updateStrip(); } }
+      catch(err){ if (wasGot) { TODAY.pending = Math.max(0, TODAY.pending - 1); updateStrip(); const c = document.getElementById('gotBand'); if (c) c.remove(); } throw err; }
       toast(`${r}号室を「${RES[form.r]}」で登録しました`);
       closeRoom();""")
 # 活動記録：獲得のタイルを件数で豪華に
@@ -552,17 +553,19 @@ function stripMsg(n){
   return night ? 'ラスト気合い!! 1件取りに行こう!' : eve ? '夕方は会える時間! 勝負どき!' : h < 12 ? '今日も1件いこう!' : 'まだまだこれから!';
 }
 function updateStrip(){
-  const c = document.getElementById('gotStrip'); if (!c || !db) return;
-  const n = myGotToday(); const h = new Date().getHours();
+  const c = document.getElementById('gotStrip'); if (!c) return;
+  let n = myGotToday(); const h = new Date().getHours(); const today = ymd(Date.now());
+  if (!db) { try { const x = JSON.parse(localStorage.getItem('hm_got') || 'null'); n = x && x.d === today ? x.n : 0; } catch(e){ n = 0; } }
+  else { try { localStorage.setItem('hm_got', JSON.stringify({ d: today, n })); } catch(e){} }
   c.hidden = false;
   c.className = 'gstrip' + (n >= 2 ? ' l2' : n === 1 ? ' l1' : '') + (h >= 19 || h < 4 ? ' night' : '');
   c.textContent = '';
   c.append(el('span', { class: 'gs-lab', text: '本日の獲得' }), el('span', { class: 'gs-num' }, String(n), el('small', { text: '件' })), el('span', { class: 'gs-msg', text: stripMsg(n) }));
 }
 function todayAway(bid){""")
-rep("""    TODAY.got = got; TODAY.gotGone = gone;""", """    TODAY.got = got; TODAY.gotGone = gone; updateStrip();""")
+rep("""    TODAY.got = got; TODAY.gotGone = gone;""", """    TODAY.got = got; TODAY.gotGone = gone; if (!TODAY.pending) updateStrip();""")
 rep("""    if (f.r === 'got') { TODAY.gotLocal = TODAY.gotLocal || new Set(); TODAY.gotLocal.add(k); }""",
-    """    if (f.r === 'got') { TODAY.gotLocal = TODAY.gotLocal || new Set(); TODAY.gotLocal.add(k); updateStrip(); }""")
+    """    if (f.r === 'got') { TODAY.gotLocal = TODAY.gotLocal || new Set(); TODAY.gotLocal.add(k); }""")
 rep("""  watchToday(); setInterval(watchToday, 5 * 60000);""",
     """  watchToday(); setInterval(watchToday, 5 * 60000);
   updateStrip(); setInterval(updateStrip, 60000);
