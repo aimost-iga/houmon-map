@@ -730,5 +730,97 @@ rep("""    SUM = next;
     if (!checkRevReminder._done) { checkRevReminder._done = true; checkRevReminder(); }
     if (panelKind === 'act' && actState.tab === 'next') renderAct();""")
 
+
+# ---------- 獲得の演出を豪華に（打ち上げ花火・金の柳・紙吹雪・光・大きな文字）。画面は押せるまま ----------
+SHOW_CSS = """
+#gotFlash{position:fixed;inset:0;z-index:3950;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.85),rgba(255,213,74,.35) 35%,rgba(27,31,168,0) 70%)}
+#gotFlash.on{animation:gotFlash .55s ease-out}
+@keyframes gotFlash{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+#gotEdge{position:fixed;inset:0;z-index:3940;pointer-events:none;opacity:0;box-shadow:inset 0 0 0 4px #ffd54a,inset 0 0 60px 10px rgba(255,213,74,.55)}
+#gotEdge.on{animation:gotEdge 1.8s ease-out}
+@keyframes gotEdge{0%{opacity:0}12%{opacity:1}60%{opacity:.8}100%{opacity:0}}
+#gotStamp{position:fixed;left:50%;top:38%;z-index:3960;pointer-events:none;transform:translate(-50%,-50%) scale(.2);opacity:0;
+  padding:10px 26px 12px;border-radius:18px;background:rgba(16,19,60,.86);border:3px solid #ffd54a;box-shadow:0 10px 40px rgba(0,0,0,.35);text-align:center;white-space:nowrap}
+#gotStamp .s1{display:block;font-size:46px;font-weight:700;line-height:1.1;color:#fff;letter-spacing:.06em}
+#gotStamp .s2{display:block;font-size:15px;font-weight:700;color:#ffd54a;letter-spacing:.12em;margin-top:2px}
+#gotStamp.gold .s1{color:#ffd54a}
+#gotStamp.on{animation:gotStamp 1.9s cubic-bezier(.2,1.5,.35,1) forwards}
+@keyframes gotStamp{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(-8deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(2deg)}30%{transform:translate(-50%,-50%) scale(1) rotate(0)}78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-60%) scale(.9)}}
+@media (prefers-reduced-motion:reduce){#gotFlash,#gotEdge{display:none}#gotStamp.on{animation:none;opacity:1;transform:translate(-50%,-50%)}}
+"""
+i = s.index('</style>')
+s = s[:i] + SHOW_CSS + s[i:]
+a0 = s.index("function fireworks(big){")
+a1 = s.index("// 今日の獲得の帯")
+s = s[:a0] + r"""function fireworks(level){
+  // level：0＝獲得ボタンを押したとき（小さめ）、1＝1件目、2＝2件目、3＝3件目以上
+  if (reduceMotion()) return;
+  level = level === true ? 2 : level === false ? 1 : (level || 0);
+  let cv = document.getElementById('fw'); if (cv) cv.remove();
+  cv = document.createElement('canvas'); cv.id = 'fw'; document.body.append(cv);
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const COL = ['#ffd54a', '#ffffff', '#5CC2F2', '#ff7aa2', '#8ef0b0', '#9aa8ff', '#ffb04a', '#ff5e5e'];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const P = [];      // 火花
+  const R = [];      // 打ち上げ中の玉
+  const C = [];      // 紙吹雪
+  const burst = (x, y, kind, col) => {
+    if (kind === 'willow') { for (let i = 0; i < 90; i++) { const a = rnd(0, Math.PI * 2), v = rnd(0.6, 3.2); P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 0.6, c: Math.random() < .7 ? '#ffd54a' : '#fff1b0', life: rnd(1400, 2100), t: 0, gr: 0.035, dr: 0.985, r: 1.9, tw: true }); } return; }
+    const n = kind === 'ring' ? 64 : 80, c2 = COL[(Math.random() * COL.length) | 0];
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + rnd(-.05, .05), v = kind === 'ring' ? 4.2 : rnd(1.5, 5.2);
+      P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: i % 3 === 0 ? c2 : col, life: rnd(900, 1400), t: 0, gr: 0.06, dr: 0.97, r: 2.6, tw: Math.random() < .3 }); }
+    for (let i = 0; i < 26; i++) { const a = rnd(0, Math.PI * 2), v = rnd(.5, 2); P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: '#ffffff', life: rnd(500, 900), t: 0, gr: 0.03, dr: 0.95, r: 1.6, tw: true }); }
+  };
+  const shells = [0, 3, 5, 7, 9][Math.min(4, level + (level ? 1 : 0))] || 3;
+  for (let s2 = 0; s2 < shells; s2++) {
+    const x = W * rnd(0.15, 0.85), ty = H * rnd(0.14, 0.38), kind = level >= 2 && s2 % 3 === 2 ? 'willow' : s2 % 2 ? 'ring' : 'peony';
+    R.push({ x: x + rnd(-30, 30), y: H + 10, tx: x, ty, t0: s2 * (level >= 2 ? 170 : 230), dur: rnd(520, 700), kind, col: COL[(s2 * 3 + 1) % COL.length], done: false });
+  }
+  if (level >= 1) { const nC = level >= 3 ? 150 : level >= 2 ? 110 : 70;
+    const cc = level >= 2 ? ['#ffd54a', '#ffe9a0', '#ffffff', '#5CC2F2', '#9aa8ff'] : ['#5CC2F2', '#ffffff', '#9aa8ff', '#ffd54a', '#ff7aa2'];
+    for (let i = 0; i < nC; i++) C.push({ x: rnd(0, W), y: rnd(-H * 0.6, -10), vy: rnd(1.6, 3.4), sw: rnd(0.6, 1.8), ph: rnd(0, 6.28), rot: rnd(0, 6.28), vr: rnd(-0.2, 0.2), w: rnd(6, 10), h: rnd(9, 15), c: cc[i % cc.length], t0: rnd(0, 500) }); }
+  const start = performance.now(); let last = start;
+  const tick = now => {
+    const t = now - start, dt = Math.min(40, now - last) / 16.7; last = now;
+    g.globalCompositeOperation = 'destination-out'; g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.26)'; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'lighter';
+    for (const r of R) { if (r.done || t < r.t0) continue; const k = Math.min(1, (t - r.t0) / r.dur), e = 1 - Math.pow(1 - k, 3);
+      const x = r.x + (r.tx - r.x) * e, y = r.y + (r.ty - r.y) * e;
+      g.globalAlpha = 1; g.fillStyle = '#fff3c4'; g.beginPath(); g.arc(x, y, 2.6, 0, 6.28); g.fill();
+      if (Math.random() < .8) P.push({ x, y: y + 4, vx: rnd(-.3, .3), vy: rnd(.5, 1.2), c: '#ffcf70', life: 380, t: 0, gr: .02, dr: .96, r: 1.4 });
+      if (k >= 1) { r.done = true; burst(x, y, r.kind, r.col); } }
+    for (const p of P) { if (p.t > p.life) continue; p.t += dt * 16.7; p.vx *= Math.pow(p.dr, dt); p.vy = p.vy * Math.pow(p.dr, dt) + p.gr * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      let a = 1 - p.t / p.life; if (p.tw) a *= .55 + .45 * Math.sin(p.t / 40); g.globalAlpha = Math.max(0, a); g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, p.r, 0, 6.28); g.fill(); }
+    g.globalCompositeOperation = 'source-over';
+    for (const c of C) { if (t < c.t0) continue; c.y += c.vy * dt; c.ph += 0.06 * dt; c.rot += c.vr * dt; if (c.y > H + 20) continue;
+      const x = c.x + Math.sin(c.ph) * 18 * c.sw; g.save(); g.translate(x, c.y); g.rotate(c.rot); g.scale(1, Math.abs(Math.cos(c.ph * 1.7)) * .8 + .2);
+      g.globalAlpha = t > 2600 ? Math.max(0, 1 - (t - 2600) / 600) : 1; g.fillStyle = c.c; g.fillRect(-c.w / 2, -c.h / 2, c.w, c.h); g.restore(); }
+    if (t < (level >= 2 ? 3400 : 3000)) requestAnimationFrame(tick); else cv.remove();
+  };
+  requestAnimationFrame(tick);
+}
+// 光・金のふち・大きな文字（文字は濃い紺の板の上なので読みやすい）
+function gotShow(n){
+  const lv = Math.min(3, n);
+  fireworks(lv);
+  const mk = (id) => { let e = document.getElementById(id); if (e) e.remove(); e = document.createElement('div'); e.id = id; document.body.append(e); return e; };
+  if (!reduceMotion()) { const f = mk('gotFlash'); requestAnimationFrame(() => f.classList.add('on')); setTimeout(() => f.remove(), 700);
+    if (lv >= 2) { const ed = mk('gotEdge'); requestAnimationFrame(() => ed.classList.add('on')); setTimeout(() => ed.remove(), 2000); } }
+  const st = mk('gotStamp'); st.className = lv >= 2 ? 'gold' : '';
+  st.append(el('span', { class: 's1', text: lv >= 3 ? '伝説!!' : lv === 2 ? '神!!' : '獲得!!' }), el('span', { class: 's2', text: `本日 ${n}件目` }));
+  requestAnimationFrame(() => st.classList.add('on')); setTimeout(() => st.remove(), reduceMotion() ? 1500 : 2000);
+  if (navigator.vibrate) { try { navigator.vibrate(lv >= 3 ? [70, 40, 70, 40, 70, 40, 200] : lv === 2 ? [60, 40, 60, 40, 140] : [90, 50, 90]); } catch(e){} }
+}
+""" + s[a1:]
+# 獲得を押したとき：小さめの花火／登録したとき：豪華なフルセット
+rep("""    if (k === 'got' && form.r !== 'got') fireworks(myGotToday() >= 1);""",
+    """    if (k === 'got' && form.r !== 'got') fireworks(0);""")
+rep("""      if (wasGot) { TODAY.pending = (TODAY.pending || 0) + 1; updateStrip(); gotBand(myGotToday()); fireworks(myGotToday() >= 2); }""",
+    """      if (wasGot) { TODAY.pending = (TODAY.pending || 0) + 1; updateStrip(); gotBand(myGotToday()); gotShow(myGotToday()); }""")
+# 帯の中の震えは gotShow に任せる（二重にならないように）
+rep("""  if (navigator.vibrate) { try { navigator.vibrate(n >= 2 ? [60, 40, 60, 40, 120] : [80]); } catch(e){} }
+  clearTimeout(gotBand._t);""", """  clearTimeout(gotBand._t);""")
+
 open(os.path.join('/home/claude/houmon-map', 'index.html'), 'w', encoding='utf-8').write(s)
 print('ok', len(s))
