@@ -1130,6 +1130,7 @@ details.pref .cities{padding:6px 0 8px}
 .gstrip .gs-num{font-size:18px;font-variant-numeric:tabular-nums;line-height:1}
 .gstrip .gs-num small{font-size:11.5px;margin-left:1px}
 .gstrip .gs-msg{margin-left:auto;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:420px){.gstrip{gap:8px;padding:0 10px}.gstrip .gs-msg{font-size:12.5px}.gstrip .gs-lab{font-size:11px}}
 .gstrip.l1{background:linear-gradient(90deg,#1B1FA8,#2E51C0 60%,#5CC2F2);color:#fff;border-bottom-color:transparent}
 .gstrip.l2{background:linear-gradient(90deg,#14178a,#2E51C0 55%,#c99a18);color:#fff;border-bottom-color:transparent}
 .gstrip.l2 .gs-num,.gstrip.l2 .gs-msg{color:#ffe27a}
@@ -1971,9 +1972,11 @@ function watchToday(){
   if (todayUnsub) { try { todayUnsub(); } catch(e){} todayUnsub = null; }
   TODAY = { day: d, by: {} };
   todayUnsub = FB.act.watchDay(d, docs => {
-    const by = {}; const got = new Set(), gone = new Set();
+    const by = {}; const got = new Set(), gone = new Set(); let doors = 0;
     for (const data of docs) for (const k in data) { const v = data[k]; if (v && v.r === 'away' && !v.x && v.bid) (by[v.bid] = by[v.bid] || {})[k] = v;
-      if (v && v.r === 'got' && v.u === me.id) (v.x ? gone : got).add(k); }
+      if (v && v.r === 'got' && v.u === me.id) (v.x ? gone : got).add(k);
+      if (v && v.r && v.u === me.id && !v.x) doors++; }
+    TODAY.myDoors = doors;
     TODAY.got = got; TODAY.gotGone = gone; if (!TODAY.pending) updateStrip();
     TODAY.by = by;
     const ids = []; for (const x in by) for (const k in by[x]) ids.push(by[x][k].u);
@@ -2033,7 +2036,15 @@ function stripMsg(n){
   if (n >= 3) return night ? '伝説!! 最高の締めを!' : '伝説!! まだ伸ばせる!';
   if (n === 2) return night ? '神!! ラスト気合いでもう1件!' : '神!! この勢いで3件目!';
   if (n === 1) return night ? 'ラスト気合い!! あと1件!' : eve ? '夕方は会える時間! もう1件!!' : 'もう1件!!';
-  return night ? 'ラスト気合い!! 1件取りに行こう!' : eve ? '夕方は会える時間! 勝負どき!' : h < 12 ? '今日も1件いこう!' : 'まだまだこれから!';
+  // 0件：時間帯ごとに数パターン。同じ日・同じ時間帯の間は同じ言葉（ころころ変わらないように）
+  const d = Math.floor((Date.now() + 9 * 3600e3) / 864e5);
+  const pick = arr => arr[d % arr.length];
+  const doors = TODAY.myDoors || 0;
+  if (doors >= 10) return night ? `ラスト気合い!! ${doors}軒の粘りが実る` : `${doors}軒たたいた。当たりは近い!`;
+  if (night) return pick(['ラスト気合い!! 次のドアで1件', 'ラスト気合い!! 粘った人に1件', 'ラスト気合い!! 最後まで可能性']);
+  if (eve) return pick(['帰宅ラッシュは会えるチャンス!', 'ここからが本番。会える時間!', '夕方は在宅の時間。決めよう!']);
+  if (h < 12) return pick(['1件目は、まだ誰のものでもない', '最初のピンポンが今日のスイッチ', '朝イチの1件で1日が軽くなる']);
+  return pick(['あと1軒先に今日の1件がある', '断られた数だけ獲得に近づく', 'まだ折り返し。ここから!']);
 }
 function updateStrip(){
   const c = document.getElementById('gotStrip'); if (!c) return;
@@ -2043,7 +2054,7 @@ function updateStrip(){
   c.hidden = false;
   c.className = 'gstrip' + (n >= 2 ? ' l2' : n === 1 ? ' l1' : '') + (h >= 19 || h < 4 ? ' night' : '');
   c.textContent = '';
-  c.append(el('span', { class: 'gs-lab', text: '本日の獲得' }), el('span', { class: 'gs-num' }, String(n), el('small', { text: '件' })), el('span', { class: 'gs-msg', text: stripMsg(n) }));
+  c.append(el('span', { class: 'gs-lab', text: matchMedia('(max-width:420px)').matches ? '今日' : '本日の獲得' }), el('span', { class: 'gs-num' }, String(n), el('small', { text: '件' })), el('span', { class: 'gs-msg', text: stripMsg(n) }));
 }
 function todayAway(bid){ return (TODAY.day === ymd(Date.now()) && TODAY.by[bid]) || {}; }
 function liveLog(){
