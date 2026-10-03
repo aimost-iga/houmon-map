@@ -1356,7 +1356,8 @@ const store = {
 const DAY = 86400000;
 const RES = { away:'不在', ihng:'インターホンNG', fng:'対面NG', again:'再訪', got:'獲得', vac:'未入居', sng:'差し込みNG', png:'ポスト投函NG' };
 const RES_S = { away:'不在', ihng:'ｲﾝﾀｰﾎﾝNG', fng:'対面NG', again:'再訪', got:'獲得', vac:'未入居', sng:'差込NG', png:'投函NG' };
-const RES_ORDER = ['away', 'ihng', 'fng', 'again', 'got', 'vac', 'sng', 'png'];
+const RES_ORDER = ['away', 'ihng', 'fng', 'again', 'got', 'vac', 'png'];
+const NOT_DOOR = ['png']; // 訪問数に数えない結果（ポスト投函NG）
 const WHY = ['他社光を利用中', '物件の備え付けネット', '引っ越し予定', '興味なし', '忙しい・時間がない', '家族に相談したい', '契約期間が残っている', '高いと感じる', '日本語NG', 'その他'];
 const NET = ['ドコモ光', 'ソフトバンク光', 'auひかり', 'フレッツ光', 'J:COM', 'ホームルーター', '物件の備え付け', 'なし', 'わからない'];
 const WHAT = ['2.5ギガ', '10ギガ', 'その他'];
@@ -2101,7 +2102,7 @@ function watchToday(){
     const by = {}; const got = new Set(), gone = new Set(); let doors = 0;
     for (const data of docs) for (const k in data) { const v = data[k]; if (v && v.r === 'away' && !v.x && v.bid) (by[v.bid] = by[v.bid] || {})[k] = v;
       if (v && v.r === 'got' && v.u === me.id) (v.x ? gone : got).add(k);
-      if (v && v.r && v.u === me.id && !v.x) doors++; }
+      if (v && v.r && v.u === me.id && !v.x && !NOT_DOOR.includes(v.r)) doors++; }
     TODAY.myDoors = doors;
     TODAY.got = got; TODAY.gotGone = gone; if (!TODAY.pending) updateStrip();
     TODAY.by = by;
@@ -2721,14 +2722,13 @@ function renderRoomForm(){
   const drawExtra = () => {
     extra.textContent = '';
     const k = form.r;
-    if (k === 'fng' || k === 'ihng') { extra.append(el('div', { class: 'flab', text: '断られた理由' }), chipRow(WHY, 'why')); }
+    if (k === 'fng' || k === 'ihng') { extra.append(el('div', { class: 'flab', text: '断られた理由' }), chipRow(k === 'fng' ? ['差し込みNG'].concat(WHY) : WHY, 'why')); }
     if (k === 'fng' || k === 'again' || k === 'got') extra.append(el('div', { class: 'flab', text: '今使っているネット（わかれば）' }), chipRow(NET, 'net'));
     if (k === 'got') extra.append(el('div', { class: 'flab', text: '獲得の内容' }), chipRow(WHAT, 'what'));
     if (k === 'again') extra.append(el('div', { class: 'flab', text: '次に来るとよいタイミング' }), chipRow(WHEN, 'when'));
     if (k === 'away') extra.append(el('div', { class: 'muted', text: '不在はその日の訪問数に数えるだけです。部屋の記録には残らず、翌日には消えます（会えるまで毎回行く前提）。' }));
     if (k === 'vac') extra.append(el('div', { class: 'muted', text: '表札なし・郵便受け封鎖など、空室に見えた部屋。次の人が入居確認で叩けるよう残ります。' }));
-    if (k === 'sng') extra.append(el('div', { class: 'muted', text: 'ドアへのチラシの差し込みを断られた・禁止の表示がある部屋。次の人が差し込まないよう残ります。' }));
-    if (k === 'png') extra.append(el('div', { class: 'muted', text: 'ポストへのチラシの投函を断られた・投函禁止の表示がある部屋。配布のときに入れないよう残ります。' }));
+    if (k === 'png') extra.append(el('div', { class: 'muted', text: 'ポストへのチラシの投函を断られた・投函禁止の表示がある部屋。配布のときに入れないよう残ります。訪問数には数えません。' }));
   };
   const resRow = el('div', { class: 'res' }, RES_ORDER.map(k => el('button', { 'data-r': k, 'aria-pressed': String(form.r === k), onclick: () => {
     if (k === 'got' && form.r !== 'got') fireworks(0);
@@ -2881,7 +2881,7 @@ async function loadAct(){
   }
 }
 function tally(list){
-  const c = { doors: list.length, bld: new Set(list.map(x => x.bid)).size, face: 0 };
+  const c = { doors: list.filter(x => !NOT_DOOR.includes(x.r)).length, bld: new Set(list.map(x => x.bid)).size, face: 0 };
   for (const k of RES_ORDER) c[k] = 0;
   for (const x of list) { if (c[x.r] != null) c[x.r]++; if (FACE.includes(x.r)) c.face++; }
   return c;
@@ -2946,9 +2946,9 @@ function renderAct(){
     const tb = el('tbody');
     people.map(u => ({ u, c: tally(actEntries.filter(x => x.u === u)) })).sort((a, b2) => b2.c.doors - a.c.doors).forEach(({ u, c: cc }) => tb.append(
       el('tr', { class: actState.who === u ? 'sel' : null, onclick: () => { actState.who = actState.who === u ? '' : u; renderAct(); } },
-        el('td', { text: nameOf(u) }), el('td', { text: cc.doors }), el('td', { text: cc.away }), el('td', { text: cc.ihng }), el('td', { text: cc.fng }), el('td', { text: cc.again }), el('td', { text: cc.got, style: cc.got ? 'color:var(--r-got);font-weight:700' : null }), el('td', { text: cc.vac }), el('td', { text: cc.sng }), el('td', { text: cc.png }), el('td', { text: cc.doors ? Math.round(cc.face / cc.doors * 100) + '%' : '―' }))));
+        el('td', { text: nameOf(u) }), el('td', { text: cc.doors }), el('td', { text: cc.away }), el('td', { text: cc.ihng }), el('td', { text: cc.fng }), el('td', { text: cc.again }), el('td', { text: cc.got, style: cc.got ? 'color:var(--r-got);font-weight:700' : null }), el('td', { text: cc.vac }), el('td', { text: cc.png }), el('td', { text: cc.doors ? Math.round(cc.face / cc.doors * 100) + '%' : '―' }))));
     body.append(el('section', { class: 'sec' }, el('h3', { text: '担当者ごと（押すと絞り込み）' }), el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' },
-      el('thead', null, el('tr', null, ['担当', '訪問', '不在', 'ｲﾝﾀｰﾎﾝNG', '対面NG', '再訪', '獲得', '未入居', '差込NG', '投函NG', '対面率'].map(h => el('th', { text: h })))), tb))));
+      el('thead', null, el('tr', null, ['担当', '訪問', '不在', 'ｲﾝﾀｰﾎﾝNG', '対面NG', '再訪', '獲得', '未入居', '投函NG', '対面率'].map(h => el('th', { text: h })))), tb))));
   }
   // NG reasons
   const why = {}; list.filter(x => x.why).forEach(x => why[x.why] = (why[x.why] || 0) + 1);

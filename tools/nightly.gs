@@ -173,7 +173,8 @@ function saveVisits_(a){
   for (const k in a.data) {
     const e = a.data[k];
     if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r]) continue;
-    v.doors++; v[e.r] = (v[e.r] || 0) + 1;
+    v[e.r] = (v[e.r] || 0) + 1; if (e.r === 'png') continue; // ポスト投函NGは訪問数に数えない
+    v.doors++;
     if (e.r === 'fng' || e.r === 'again' || e.r === 'got') v.face++;
     if (e.t) { ts.push({ t: Number(e.t), b: e.bid });
       const hh = Utilities.formatDate(new Date(Number(e.t)), 'Asia/Tokyo', 'HH'); // 時間帯ごとの訪問・対面（業務管理アプリの訪販の分析）
