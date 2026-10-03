@@ -684,7 +684,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --accent:#0f6b73; --accent-ink:#ffffff; --accent-soft:#dcefef;
   --s-none:#9aa4a8; --s-fresh:#2b9a5a; --s-mid:#e3a019; --s-old:#d24a3a; --s-ng:#262b2f;
   --got:#c9920e;
-  --r-away:#8b98a0; --r-ihng:#e0861c; --r-fng:#d24a3a; --r-again:#3b7fd0; --r-got:#1f9a55; --r-vac:#8a5cc7;
+  --r-away:#8b98a0; --r-ihng:#e0861c; --r-fng:#d24a3a; --r-again:#3b7fd0; --r-got:#1f9a55; --r-vac:#8a5cc7; --r-sng:#a0522d; --r-png:#5d6b7a;
   --inst:#3b6fd0; --inst-bg:#e3ebfb; --kanyu:#c0392b; --kanyu-bg:#fbe4e1;
   --warn-bg:#fff4e0; --warn-line:#e6b45a; --danger-bg:#fde8e5; --danger-line:#e59a8f;
   --shadow:0 6px 24px rgba(20,40,45,.16);
@@ -805,6 +805,8 @@ button{cursor:pointer}
 .res button[data-r="again"][aria-pressed="true"]{background:var(--r-again)}
 .res button[data-r="got"][aria-pressed="true"]{background:var(--r-got)}
 .res button[data-r="vac"][aria-pressed="true"]{background:var(--r-vac)}
+.res button[data-r="sng"][aria-pressed="true"]{background:var(--r-sng)}
+.res button[data-r="png"][aria-pressed="true"]{background:var(--r-png)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:6px 11px;font-size:12.5px}
 .chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
@@ -858,6 +860,8 @@ button{cursor:pointer}
 .room[data-r="again"]{border-color:var(--r-again)} .room[data-r="again"] small{color:var(--r-again)}
 .room[data-r="got"]{border-color:var(--r-got);background:color-mix(in srgb,var(--r-got) 14%,var(--card))} .room[data-r="got"] small{color:var(--r-got)}
 .room[data-r="vac"]{border-color:var(--r-vac);border-style:dashed} .room[data-r="vac"] small{color:var(--r-vac)}
+.room[data-r="sng"]{border-color:var(--r-sng)} .room[data-r="sng"] small{color:var(--r-sng)}
+.room[data-r="png"]{border-color:var(--r-png)} .room[data-r="png"] small{color:var(--r-png)}
 .room.kanyu{cursor:not-allowed}
 .room.off{opacity:.45;border-style:dashed;background:var(--soft)}
 .room.off b{text-decoration:line-through}
@@ -867,7 +871,7 @@ button{cursor:pointer}
 .fctl small{font-size:11px;color:var(--ink3)}
 .rkeys{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--ink3);margin-top:6px}
 .pill{display:inline-block;border-radius:5px;padding:1px 7px;font-size:11.5px;font-weight:700;color:#fff;white-space:nowrap}
-.pill.away{background:var(--r-away)}.pill.ihng{background:var(--r-ihng)}.pill.fng{background:var(--r-fng)}.pill.again{background:var(--r-again)}.pill.got{background:var(--r-got)}.pill.vac{background:var(--r-vac)}
+.pill.away{background:var(--r-away)}.pill.ihng{background:var(--r-ihng)}.pill.fng{background:var(--r-fng)}.pill.again{background:var(--r-again)}.pill.got{background:var(--r-got)}.pill.vac{background:var(--r-vac)} .pill.sng{background:var(--r-sng)} .pill.png{background:var(--r-png)}
 .log{display:flex;flex-direction:column}
 .log-i{display:grid;grid-template-columns:auto auto 1fr auto;gap:4px 8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--soft);font-size:12.5px}
 .log-i time{color:var(--ink3);font-variant-numeric:tabular-nums;font-size:12px}
@@ -1350,10 +1354,10 @@ const store = {
   set(k, v){ try { localStorage.setItem('hm_' + k, JSON.stringify(v)); } catch(e){} }
 };
 const DAY = 86400000;
-const RES = { away:'不在', ihng:'インターホンNG', fng:'対面NG', again:'再訪', got:'獲得', vac:'未入居' };
-const RES_S = { away:'不在', ihng:'ｲﾝﾀｰﾎﾝNG', fng:'対面NG', again:'再訪', got:'獲得', vac:'未入居' };
-const RES_ORDER = ['away', 'ihng', 'fng', 'again', 'got', 'vac'];
-const WHY = ['他社光を利用中', '物件の備え付けネット', '引っ越し予定', '興味なし', '忙しい・時間がない', '家族に相談したい', '契約期間が残っている', '高いと感じる', 'その他'];
+const RES = { away:'不在', ihng:'インターホンNG', fng:'対面NG', again:'再訪', got:'獲得', vac:'未入居', sng:'差し込みNG', png:'ポスト投函NG' };
+const RES_S = { away:'不在', ihng:'ｲﾝﾀｰﾎﾝNG', fng:'対面NG', again:'再訪', got:'獲得', vac:'未入居', sng:'差込NG', png:'投函NG' };
+const RES_ORDER = ['away', 'ihng', 'fng', 'again', 'got', 'vac', 'sng', 'png'];
+const WHY = ['他社光を利用中', '物件の備え付けネット', '引っ越し予定', '興味なし', '忙しい・時間がない', '家族に相談したい', '契約期間が残っている', '高いと感じる', '日本語NG', 'その他'];
 const NET = ['ドコモ光', 'ソフトバンク光', 'auひかり', 'フレッツ光', 'J:COM', 'ホームルーター', '物件の備え付け', 'なし', 'わからない'];
 const WHAT = ['2.5ギガ', '10ギガ', 'その他'];
 const WHEN = ['今日の夜', '平日の昼', '平日の夜', '土日', '日時の約束あり'];
@@ -2723,6 +2727,8 @@ function renderRoomForm(){
     if (k === 'again') extra.append(el('div', { class: 'flab', text: '次に来るとよいタイミング' }), chipRow(WHEN, 'when'));
     if (k === 'away') extra.append(el('div', { class: 'muted', text: '不在はその日の訪問数に数えるだけです。部屋の記録には残らず、翌日には消えます（会えるまで毎回行く前提）。' }));
     if (k === 'vac') extra.append(el('div', { class: 'muted', text: '表札なし・郵便受け封鎖など、空室に見えた部屋。次の人が入居確認で叩けるよう残ります。' }));
+    if (k === 'sng') extra.append(el('div', { class: 'muted', text: 'ドアへのチラシの差し込みを断られた・禁止の表示がある部屋。次の人が差し込まないよう残ります。' }));
+    if (k === 'png') extra.append(el('div', { class: 'muted', text: 'ポストへのチラシの投函を断られた・投函禁止の表示がある部屋。配布のときに入れないよう残ります。' }));
   };
   const resRow = el('div', { class: 'res' }, RES_ORDER.map(k => el('button', { 'data-r': k, 'aria-pressed': String(form.r === k), onclick: () => {
     if (k === 'got' && form.r !== 'got') fireworks(0);
@@ -2940,9 +2946,9 @@ function renderAct(){
     const tb = el('tbody');
     people.map(u => ({ u, c: tally(actEntries.filter(x => x.u === u)) })).sort((a, b2) => b2.c.doors - a.c.doors).forEach(({ u, c: cc }) => tb.append(
       el('tr', { class: actState.who === u ? 'sel' : null, onclick: () => { actState.who = actState.who === u ? '' : u; renderAct(); } },
-        el('td', { text: nameOf(u) }), el('td', { text: cc.doors }), el('td', { text: cc.away }), el('td', { text: cc.ihng }), el('td', { text: cc.fng }), el('td', { text: cc.again }), el('td', { text: cc.got, style: cc.got ? 'color:var(--r-got);font-weight:700' : null }), el('td', { text: cc.vac }), el('td', { text: cc.doors ? Math.round(cc.face / cc.doors * 100) + '%' : '―' }))));
+        el('td', { text: nameOf(u) }), el('td', { text: cc.doors }), el('td', { text: cc.away }), el('td', { text: cc.ihng }), el('td', { text: cc.fng }), el('td', { text: cc.again }), el('td', { text: cc.got, style: cc.got ? 'color:var(--r-got);font-weight:700' : null }), el('td', { text: cc.vac }), el('td', { text: cc.sng }), el('td', { text: cc.png }), el('td', { text: cc.doors ? Math.round(cc.face / cc.doors * 100) + '%' : '―' }))));
     body.append(el('section', { class: 'sec' }, el('h3', { text: '担当者ごと（押すと絞り込み）' }), el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' },
-      el('thead', null, el('tr', null, ['担当', '訪問', '不在', 'ｲﾝﾀｰﾎﾝNG', '対面NG', '再訪', '獲得', '未入居', '対面率'].map(h => el('th', { text: h })))), tb))));
+      el('thead', null, el('tr', null, ['担当', '訪問', '不在', 'ｲﾝﾀｰﾎﾝNG', '対面NG', '再訪', '獲得', '未入居', '差込NG', '投函NG', '対面率'].map(h => el('th', { text: h })))), tb))));
   }
   // NG reasons
   const why = {}; list.filter(x => x.why).forEach(x => why[x.why] = (why[x.why] || 0) + 1);
