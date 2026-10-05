@@ -1470,7 +1470,7 @@ function styleFor(b){
   return { radius: r, fillColor: fill, color: got ? css('--got') : b.nw ? '#8a3ffc' : css('--card'), weight: got || b.nw ? 2.4 : (r > 4 ? 1.2 : 0.6), fillOpacity: mode === 'area' ? 0.75 : 0.92, opacity: 1 };
 }
 function visible(b){
-  if (b.x && !S.showGone) return false;
+  if (b.x) return false; // リスト外の建物はどこにも出さない（記録は残る）
   if (S.onlyFresh && !(b.nw || b.back)) return false;
   if (S.onlyVac && !vacOf(b)) return false;
   if (S.introMax) { const a = introAge(b); if (a == null || a > S.introMax) return false; }
@@ -1730,7 +1730,7 @@ function renderKeys(){
     const sq = (c, t) => el('span', null, el('span', { class: 'sq', style: `background:${c}` }), t);
     k.append(el('span', { style: 'width:100%;color:var(--ink3)' }, `${S.d2}日以内に訪問した建物の割合`), sq(AREA_RAMP[0], '0–20%'), sq(AREA_RAMP[1], '–40%'), sq(AREA_RAMP[2], '–60%'), sq(AREA_RAMP[3], '–80%'), sq(AREA_RAMP[4], '80%+'));
   }
-  k.append(dot(css('--card'), '獲得あり', css('--got')), dot(css('--s-ng'), '訪販禁止', css('--s-old')), dot(css('--card'), '新着', '#8a3ffc'), dot('#6b6f73', 'リスト外（訪問しない）', '#1c1f22'));
+  k.append(dot(css('--card'), '獲得あり', css('--got')), dot(css('--s-ng'), '訪販禁止', css('--s-old')), dot(css('--card'), '新着', '#8a3ffc'));
 }
 function updateStatLine(){
   let v = 0, tot = 0, got = 0, recent = 0;
@@ -3396,7 +3396,7 @@ function renderUpd(){
   const grp = (title, list, note) => { if (!list.length) return; body.append(el('section', { class: 'sec' }, el('h3', { text: `${title}（${list.length}棟）` }), note ? el('div', { class: 'muted', text: note }) : null, el('div', null, list.slice(0, 200).map(b => el('div', { class: 'lrow' }, bRow(b), el('span'))))));};
   grp('新しく入った建物', B.filter(b => b.nw || b.back), '最近設備が入った物件などです。見込み先として優先して回れます。');
   grp('内容が変わった建物', B.filter(b => b.ch && !b.x), '申込数・開通済みの部屋・特記事項などが変わりました。');
-  grp('リストから消えた建物', B.filter(b => b.x === META.month), '訪問禁止になった可能性が高いので、地図では灰色の点線で出し、登録もできなくしています。');
+  grp('リストから消えた建物', B.filter(b => b.x === META.month), 'リスト外の建物は、地図・一覧・検索には出しません（これまでの訪問記録は会社の記録として残ります）。');
   if (hist.length) body.append(el('section', { class: 'sec' }, el('h3', { text: '取り込みの履歴' }), el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' },
     el('thead', null, el('tr', null, ['月', '棟数', '新着', '消えた', '変更'].map(h => el('th', { text: h })))),
     el('tbody', null, hist.slice().reverse().map(h => el('tr', null, el('td', { text: ymLabel(h.month) }), el('td', { text: h.total.toLocaleString() }), el('td', { text: h.new }), el('td', { text: h.gone }), el('td', { text: h.changed }))))))));
@@ -3408,7 +3408,7 @@ function renderSet(){
   const num = (id, label, key) => el('label', { class: 'field', for: id }, label, el('input', { type: 'number', id, min: 1, max: 365, value: S[key], onchange: e => { const v = Math.max(1, Math.min(365, parseInt(e.target.value) || S[key])); S[key] = v; if (S.d2 <= S.d1) S.d2 = S.d1 + 1; saveSet(); } }));
   body.append(el('section', { class: 'sec' }, el('h3', { text: '色分けの区切り' }), el('div', { class: 'ctl', style: 'gap:16px' }, num('d1', '緑：この日数以内', 'd1'), num('d2', '黄：この日数以内（超えたら赤）', 'd2'))));
   const chk = (id, label, key) => el('label', { class: 'chk', for: id }, el('input', { type: 'checkbox', id, checked: S[key], onchange: e => { S[key] = e.target.checked; saveSet(); } }), label);
-  body.append(el('section', { class: 'sec' }, el('h3', { text: '表示する建物' }), chk('showNG', '訪販禁止の建物も表示する', 'showNG'), chk('onlyNew', 'まだ誰も訪問していない建物だけ表示', 'onlyNew'), chk('onlyFresh', '今月リストに新しく入った建物だけ表示', 'onlyFresh'), chk('showGone', 'リストから消えた建物も表示する（訪問はしない）', 'showGone'),
+  body.append(el('section', { class: 'sec' }, el('h3', { text: '表示する建物' }), chk('showNG', '訪販禁止の建物も表示する', 'showNG'), chk('onlyNew', 'まだ誰も訪問していない建物だけ表示', 'onlyNew'), chk('onlyFresh', '今月リストに新しく入った建物だけ表示', 'onlyFresh'),
     el('label', { class: 'field', for: 'nfFilter' }, 'ネット（無料・有料）でしぼる', el('select', { id: 'nfFilter', style: 'padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);max-width:220px', onchange: e => { S.nf = e.target.value; saveSet(); } }, NET_OPTS.map(([v, tx]) => el('option', { value: v, selected: v === (S.nf || '') }, tx)))),
     el('label', { class: 'field', for: 'tyFilter' }, '間取り（予測）でしぼる', el('select', { id: 'tyFilter', style: 'padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);max-width:220px', onchange: e => { S.ty = e.target.value; saveSet(); } }, TY_OPTS.map(([v, tx]) => el('option', { value: v, selected: v === (S.ty || '') }, tx)))),
     el('label', { class: 'field', for: 'introMax' }, '設備の導入時期でしぼる', el('select', { id: 'introMax', style: 'padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);max-width:220px', onchange: e => { S.introMax = +e.target.value; saveSet(); } },
@@ -3464,7 +3464,7 @@ function openCity(cc, town){
   if (!homeOn) setView('home'); else renderHome();
   $('#home').scrollTop = 0;
 }
-function cityIds(cc){ return B.filter(b => b.cc === cc && (!b.x || S.showGone)); }
+function cityIds(cc){ return B.filter(b => b.cc === cc && !b.x); }
 function cityBtn(cc, label){ const c = CITY[cc]; return el('button', { onclick: () => openCity(cc) }, label || c.short || c.name, el('small', { text: c.ids.length + '棟' })); }
 function renderHome(){
   if (!B.length) return;
@@ -3509,7 +3509,7 @@ function renderHomeSearch(body, t){
   for (const b of B) { if (b.x) continue; if (nzq(b._t).includes(t)) { const k = b.cc + '|' + b._t; tw[k] = (tw[k] || 0) + 1; } }
   const tk = Object.keys(tw).sort((a, b) => tw[b] - tw[a]);
   grp('町名', tk.slice(0, 10).map(k => { const [cc, tn] = k.split('|'); return el('button', { onclick: () => openCity(cc, tn) }, el('span', { text: `${tn}（${CITY[cc].short}）` }), el('small', { text: tw[k] + '棟' })); }), tk.length > 10 ? `ほか${tk.length - 10}件。もう少し詳しく入力するとしぼれます` : '');
-  const bs = B.filter(b => b._k.includes(t) || b.id.toLowerCase() === t || (t.length >= 3 && nzq(b.a).includes(t)));
+  const bs = B.filter(b => !b.x && (b._k.includes(t) || b.id.toLowerCase() === t || (t.length >= 3 && nzq(b.a).includes(t))));
   grp('建物', bs.slice(0, 20).map(b => el('button', { onclick: () => { openBuilding(b.id, true); } }, el('span', null, b.n, b.x ? el('span', { class: 'flag ng', text: 'リスト外' }) : null), el('small', { text: `${b.c} ${b._r}` }))), bs.length > 20 ? `ほか${bs.length - 20}件` : '');
   if (!box.childNodes.length) box.append(el('div', { class: 'muted', style: 'padding:10px 4px', text: '見つかりません。市区町村名（例：墨田区）、町名（例：文花）、マンション名で探せます。' }));
   body.append(el('div', { class: 'hcard' }, box));
@@ -3612,6 +3612,7 @@ async function boot(){
     return;
   }
   META = bj; B = bj.buildings; B.forEach(b => byId[b.id] = b);
+  { const r0 = route.length; route = route.filter(id => byId[id] && !byId[id].x); if (route.length !== r0) store.set('route', route); }
   { const m = FB.me() || {}; const w = document.getElementById('hWho'); if (w) w.textContent = (m.name || '') + ({ admin: '（管理者）', contractor: '（業務委託）' }[m.role] || ''); }
   const live = B.filter(b => !b.x).length;
   $('#srcInfo').textContent = `ソニー訪販リスト ${ymLabel(bj.month || '2026-09')}版・${live.toLocaleString()}棟`;
