@@ -684,7 +684,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --accent:#0f6b73; --accent-ink:#ffffff; --accent-soft:#dcefef;
   --s-none:#9aa4a8; --s-fresh:#2b9a5a; --s-mid:#e3a019; --s-old:#d24a3a; --s-ng:#262b2f;
   --got:#c9920e;
-  --r-away:#8b98a0; --r-ihng:#e0861c; --r-fng:#d24a3a; --r-again:#3b7fd0; --r-got:#1f9a55; --r-vac:#8a5cc7; --r-sng:#a0522d; --r-png:#5d6b7a;
+  --r-away:#8b98a0; --r-ihng:#e0861c; --r-fng:#d24a3a; --r-again:#3b7fd0; --r-got:#1f9a55; --r-vac:#8a5cc7; --r-sng:#a0522d; --r-png:#5d6b7a; --r-vng:#7b2d8e;
   --inst:#3b6fd0; --inst-bg:#e3ebfb; --kanyu:#c0392b; --kanyu-bg:#fbe4e1;
   --warn-bg:#fff4e0; --warn-line:#e6b45a; --danger-bg:#fde8e5; --danger-line:#e59a8f;
   --shadow:0 6px 24px rgba(20,40,45,.16);
@@ -753,7 +753,7 @@ button{cursor:pointer}
 
 .here-btn{position:absolute;left:12px;top:92px;z-index:950;width:34px;height:34px;border-radius:8px;border:2px solid rgba(0,0,0,.2);background:var(--card);display:grid;place-items:center;color:var(--accent);box-shadow:none}
 .here-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-.here-dot{width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(26,115,232,.35),0 1px 4px rgba(0,0,0,.4);margin:-11px 0 0 -11px}
+.here-dot{width:22px;height:22px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(26,115,232,.35),0 1px 4px rgba(0,0,0,.4);margin:-14px 0 0 -14px}
 .here-dot:after{content:"";position:absolute;inset:-12px;border-radius:50%;background:rgba(26,115,232,.18);animation:herepulse 2s ease-out infinite}
 @keyframes herepulse{from{transform:scale(.4);opacity:1}to{transform:scale(1.4);opacity:0}}
 .here-card{position:absolute;left:56px;top:88px;z-index:960;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px 14px;width:min(340px,calc(100% - 72px));box-sizing:border-box;font-size:12.5px;display:flex;flex-direction:column;gap:8px}
@@ -807,6 +807,7 @@ button{cursor:pointer}
 .res button[data-r="vac"][aria-pressed="true"]{background:var(--r-vac)}
 .res button[data-r="sng"][aria-pressed="true"]{background:var(--r-sng)}
 .res button[data-r="png"][aria-pressed="true"]{background:var(--r-png)}
+.res button[data-r="vng"][aria-pressed="true"]{background:var(--r-vng)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:6px 11px;font-size:12.5px}
 .chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
@@ -862,6 +863,7 @@ button{cursor:pointer}
 .room[data-r="vac"]{border-color:var(--r-vac);border-style:dashed} .room[data-r="vac"] small{color:var(--r-vac)}
 .room[data-r="sng"]{border-color:var(--r-sng)} .room[data-r="sng"] small{color:var(--r-sng)}
 .room[data-r="png"]{border-color:var(--r-png)} .room[data-r="png"] small{color:var(--r-png)}
+.room[data-r="vng"]{border-color:var(--r-vng)} .room[data-r="vng"] small{color:var(--r-vng)}
 .room.kanyu{cursor:not-allowed}
 .room.off{opacity:.45;border-style:dashed;background:var(--soft)}
 .room.off b{text-decoration:line-through}
@@ -871,7 +873,7 @@ button{cursor:pointer}
 .fctl small{font-size:11px;color:var(--ink3)}
 .rkeys{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--ink3);margin-top:6px}
 .pill{display:inline-block;border-radius:5px;padding:1px 7px;font-size:11.5px;font-weight:700;color:#fff;white-space:nowrap}
-.pill.away{background:var(--r-away)}.pill.ihng{background:var(--r-ihng)}.pill.fng{background:var(--r-fng)}.pill.again{background:var(--r-again)}.pill.got{background:var(--r-got)}.pill.vac{background:var(--r-vac)} .pill.sng{background:var(--r-sng)} .pill.png{background:var(--r-png)}
+.pill.away{background:var(--r-away)}.pill.ihng{background:var(--r-ihng)}.pill.fng{background:var(--r-fng)}.pill.again{background:var(--r-again)}.pill.got{background:var(--r-got)}.pill.vac{background:var(--r-vac)} .pill.sng{background:var(--r-sng)} .pill.png{background:var(--r-png)} .pill.vng{background:var(--r-vng)}
 .log{display:flex;flex-direction:column}
 .log-i{display:grid;grid-template-columns:auto auto 1fr auto;gap:4px 8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--soft);font-size:12.5px}
 .log-i time{color:var(--ink3);font-variant-numeric:tabular-nums;font-size:12px}
@@ -1266,6 +1268,11 @@ details.pref .cities{padding:6px 0 8px}
 .repCopy{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .repCopy button{flex:1 1 auto;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--soft,#eef0f6);color:var(--ink);font-size:13.5px;cursor:pointer}
 @media (min-width:761px){#repCard{bottom:24px}}
+
+.bm-text{white-space:pre-wrap;background:var(--soft);border-radius:8px;padding:8px 10px;margin:6px 0;font-size:14px}
+.bm-text .muted{margin-top:4px;font-size:12px}
+.here-btn{width:44px;height:44px;flex-direction:column;gap:0;font-size:10px;font-weight:700;line-height:1}
+.here-btn span{display:block;margin-top:1px;white-space:nowrap;font-size:9.5px;letter-spacing:-.02em}
 </style>
 </head>
 <body>
@@ -1292,7 +1299,7 @@ details.pref .cities{padding:6px 0 8px}
   <div id="banner" class="banner" hidden></div>
   <div class="stage">
     <div id="map"></div>
-    <button class="here-btn" id="hereBtn" aria-pressed="false" title="現在地" aria-label="現在地"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button>
+    <button class="here-btn" id="hereBtn" aria-pressed="false" title="現在地" aria-label="現在地"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg><span>現在地</span></button>
     <div class="here-card" id="hereCard" hidden></div>
     <div class="pick-bar" id="pickBar" hidden><span id="pickText">今いる場所を地図で押してください</span><button id="pickCancel">やめる</button></div>
     <div class="legend" id="legend">
@@ -1354,12 +1361,15 @@ const store = {
   set(k, v){ try { localStorage.setItem('hm_' + k, JSON.stringify(v)); } catch(e){} }
 };
 const DAY = 86400000;
-const RES = { away:'不在', ihng:'インターホンNG', fng:'対面NG', again:'再訪', got:'獲得', vac:'未入居', sng:'差し込みNG', png:'ポスト投函NG' };
-const RES_S = { away:'不在', ihng:'ｲﾝﾀｰﾎﾝNG', fng:'対面NG', again:'再訪', got:'獲得', vac:'未入居', sng:'差込NG', png:'投函NG' };
-const RES_ORDER = ['away', 'ihng', 'fng', 'again', 'got', 'vac', 'png'];
+const RES = { away:'不在', ihng:'インターホンNG', fng:'対面NG', sng:'差し込みNG', vng:'訪問NG', again:'再訪', got:'獲得', vac:'未入居', png:'ポスト投函NG' };
+const RES_S = { away:'不在', ihng:'ｲﾝﾀｰﾎﾝNG', fng:'対面NG', sng:'差込NG', vng:'訪問NG', again:'再訪', got:'獲得', vac:'未入居', png:'投函NG' };
+const RES_ORDER = ['away', 'ihng', 'fng', 'sng', 'vng', 'again', 'got', 'vac', 'png'];
+// 差し込みNG・訪問NGの理由（KPIで分けて見るため）
+const SNG_WHY = ['住人に断られた', '「チラシお断り」の表示', '管理人・管理会社に止められた', 'ドアに差し込めない', 'その他'];
+const VNG_WHY = ['「訪問販売お断り」の表示', '住人に「もう来ないで」', '管理人・管理会社に止められた', 'その他'];
 const NOT_DOOR = ['png']; // 訪問数に数えない結果（ポスト投函NG）
 const WHY = ['他社光を利用中', '物件の備え付けネット', '引っ越し予定', '興味なし', '忙しい・時間がない', '家族に相談したい', '契約期間が残っている', '高いと感じる', '日本語NG', 'その他'];
-const NET = ['ドコモ光', 'ソフトバンク光', 'auひかり', 'フレッツ光', 'J:COM', 'ホームルーター', '物件の備え付け', 'なし', 'わからない'];
+const NET = ['ドコモ光', 'ソフトバンク光', 'auひかり', 'フレッツ光', 'J:COM', 'BIGLOBE', 'ホームルーター', '物件の備え付け', 'その他のネット', 'なし', 'わからない'];
 const WHAT = ['2.5ギガ', '10ギガ', 'その他'];
 const WHEN = ['今日の夜', '平日の昼', '平日の夜', '土日', '日時の約束あり'];
 const FACE = ['fng', 'again', 'got'];
@@ -1379,7 +1389,7 @@ let B = [], byId = {}, AREAS = null, CITY = {}; // CITY[cc] = {name, pref, layer
 let SUM = {};          // cc -> { bid: {l, n, g, r, u} }
 let db = null, user = null, me = { id: null }, canWrite = null;
 let mode = 'last';
-const S = Object.assign({ d1: 7, d2: 30, showNG: true, onlyNew: false, prefs: null, introMax: 0, showGone: true, onlyFresh: false }, store.get('settings', {}));
+const S = Object.assign({ d1: 7, d2: 30, showNG: true, onlyNew: false, prefs: null, introMax: 0, showGone: true, onlyFresh: false, nf: 'nofree' }, store.get('settings', {}));
 let route = store.get('route', []);
 let openId = null, bUnsub = null, bDoc = null, notesCache = {};
 let names = {};
@@ -1941,6 +1951,16 @@ function endPick(){ picking = false; $('#pickBar').hidden = true; document.body.
 $('#pickCancel').addEventListener('click', () => { const bid = endPick(); if (bid) openBuilding(bid, false); });
 map.on('click', e => { if (picking) { const bid = endPick(); if (bid) { setPos(byId[bid], e.latlng.lat, e.latlng.lng).then(() => openBuilding(bid, false)); } else setHere(e.latlng.lat, e.latlng.lng, 'manual', false); } });
 map.on('contextmenu', e => { endPick(); setHere(e.latlng.lat, e.latlng.lng, 'manual', false); });
+// 位置情報を許可していれば、青い点を自動で出して、歩くとついてくる
+let hereWatch = null;
+function startWatch(){
+  if (hereWatch != null || !navigator.geolocation) return;
+  try { hereWatch = navigator.geolocation.watchPosition(p => {
+    HERE = { la: p.coords.latitude, lo: p.coords.longitude, t: Date.now(), src: 'gps' }; store.set('here', HERE);
+    if (hereMarker) hereMarker.setLatLng([HERE.la, HERE.lo]); else drawHere();
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 }); } catch(e){}
+}
+try { navigator.permissions && navigator.permissions.query({ name: 'geolocation' }).then(st => { if (st.state === 'granted') startWatch(); }).catch(() => {}); } catch(e){}
 $('#hereBtn').addEventListener('click', () => {
   if (!navigator.geolocation) { showHereCard('この画面ではスマホの位置情報を使えないため、次のどれかで現在地を指定してください。'); return; }
   toast('現在地を調べています…');
@@ -1948,7 +1968,7 @@ $('#hereBtn').addEventListener('click', () => {
   const fail = () => { if (done) return; done = true; showHereCard('この画面ではスマホの位置情報が使えませんでした。次のどれかで現在地を指定してください。'); };
   setTimeout(fail, 8000);
   try {
-    navigator.geolocation.getCurrentPosition(p => { if (done) return; done = true; setHere(p.coords.latitude, p.coords.longitude, 'gps', true); toast('現在地を表示しました'); }, fail, { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 });
+    navigator.geolocation.getCurrentPosition(p => { if (done) return; done = true; setHere(p.coords.latitude, p.coords.longitude, 'gps', true); startWatch(); toast('現在地を表示しました（歩くと青い点もついてきます）'); }, fail, { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 });
   } catch(e){ fail(); }
 });
 
@@ -2583,6 +2603,23 @@ function layoutControls(b){
       el('button', { class: 'btn', onclick: () => { layEdit = null; floorEdit = null; renderSheetDynamic(); } }, 'やめる')));
 }
 let selRoom = null, layEdit = null, floorEdit = null;
+// 建物のメモ（部屋の位置・ネットの傾向など。全員に見える）と、この建物で聞いた今のネットの集計
+function bldMemo(b){
+  const bm = (bDoc && bDoc.bm) || null;
+  const nets = {}; for (const x of Object.values((bDoc && bDoc.log) || {})) if (x && x.net && !x.x && x.net !== 'わからない') nets[x.net] = (nets[x.net] || 0) + 1;
+  const sec = el('section', { class: 'sec' }, el('h3', { text: '建物のメモ（全員に見えます）' }));
+  const nt = Object.entries(nets).sort((a, c) => c[1] - a[1]).map(([k, v]) => `${k} ${v}件`).join('・');
+  if (nt) sec.append(el('div', { class: 'muted' }, 'この建物で聞いた今のネット：', el('b', { text: nt })));
+  if (bm && bm.m) sec.append(el('div', { class: 'bm-text', text: bm.m }, el('div', { class: 'muted', text: `${nameOf(bm.u)}・${fmtDate(bm.t)}` })));
+  else sec.append(el('div', { class: 'muted', text: 'まだメモはありません。部屋の位置や、多いネットなどを残すと、次の人（夜の訪問）が回りやすくなります。' }));
+  if (db && canWrite !== false) {
+    const ta = el('textarea', { rows: 4, placeholder: '例：正面右から101・102…、2階は階段を上がって左から201\nJ:COMが多い／入居時にBIGLOBEを勧められている単身が多い' }); ta.value = (bm && bm.m) || '';
+    const box = el('div', { hidden: true, style: 'display:flex;flex-direction:column;gap:6px;margin-top:6px' }, ta,
+      el('button', { class: 'btn primary', style: 'justify-content:center', onclick: async (e) => { e.target.disabled = true; try { await writeB(b, { bm: { m: ta.value.trim(), u: me.id || '', t: Date.now() } }); toast('建物のメモを保存しました（全員に見えます）'); } catch(err){ toast(writeErr(err).message); e.target.disabled = false; } } }, '保存する'));
+    sec.append(el('button', { class: 'btn', style: 'margin-top:4px', onclick: () => { box.hidden = !box.hidden; if (!box.hidden) ta.focus(); } }, bm && bm.m ? 'メモを直す' : 'メモを書く'), box);
+  }
+  return sec;
+}
 function renderSheetDynamic(){
   const b = byId[openId]; if (!b) return;
   const dyn = $('#dyn'); if (!dyn) return;
@@ -2596,6 +2633,7 @@ function renderSheetDynamic(){
     el('span', { class: 'dot', style: `background:${ageColor(last ? { l: last.t } : null)}` }),
     last ? el('span', null, '最終訪問 ', el('b', { text: `${fmtDate(last.t)}（${ago(last.t)}）` }), `　${nameOf(last.u)}`) : el('b', { text: 'まだ誰も訪問していません' }),
     el('span', { class: 'muted', text: `延べ ${log.filter(x => x.r !== 'away').length}回（不在は数えません）` })));
+  dyn.append(bldMemo(b));
   if (Object.keys(rooms).length) dyn.append(el('div', { class: 'facts' }, RES_ORDER.filter(k => cnt[k]).map(k => el('span', { class: 'fact' }, el('span', { class: 'pill ' + k, text: RES_S[k] }), ' ', el('b', { text: cnt[k] + '室' })))));
 
   const editing = !!layEdit;
@@ -2722,7 +2760,9 @@ function renderRoomForm(){
   const drawExtra = () => {
     extra.textContent = '';
     const k = form.r;
-    if (k === 'fng' || k === 'ihng') { extra.append(el('div', { class: 'flab', text: '断られた理由' }), chipRow(k === 'fng' ? ['差し込みNG'].concat(WHY) : WHY, 'why')); }
+    if (k === 'fng' || k === 'ihng') { extra.append(el('div', { class: 'flab', text: '断られた理由' }), chipRow(WHY, 'why')); }
+    if (k === 'sng') { extra.append(el('div', { class: 'flab', text: '差し込みNGの理由' }), chipRow(SNG_WHY, 'why'), el('div', { class: 'muted', text: 'ドアへのチラシの差し込みを断られた部屋。次から差し込まないよう残ります。' })); }
+    if (k === 'vng') { extra.append(el('div', { class: 'flab', text: '訪問NGの理由' }), chipRow(VNG_WHY, 'why'), el('div', { class: 'muted', text: '「訪問しないで」と言われた・お断りの表示がある部屋。対面NG（話を聞いて断られた）とは分けて数えます。' })); }
     if (k === 'fng' || k === 'again' || k === 'got') extra.append(el('div', { class: 'flab', text: '今使っているネット（わかれば）' }), chipRow(NET, 'net'));
     if (k === 'got') extra.append(el('div', { class: 'flab', text: '獲得の内容' }), chipRow(WHAT, 'what'));
     if (k === 'again') extra.append(el('div', { class: 'flab', text: '次に来るとよいタイミング' }), chipRow(WHEN, 'when'));
@@ -2946,9 +2986,9 @@ function renderAct(){
     const tb = el('tbody');
     people.map(u => ({ u, c: tally(actEntries.filter(x => x.u === u)) })).sort((a, b2) => b2.c.doors - a.c.doors).forEach(({ u, c: cc }) => tb.append(
       el('tr', { class: actState.who === u ? 'sel' : null, onclick: () => { actState.who = actState.who === u ? '' : u; renderAct(); } },
-        el('td', { text: nameOf(u) }), el('td', { text: cc.doors }), el('td', { text: cc.away }), el('td', { text: cc.ihng }), el('td', { text: cc.fng }), el('td', { text: cc.again }), el('td', { text: cc.got, style: cc.got ? 'color:var(--r-got);font-weight:700' : null }), el('td', { text: cc.vac }), el('td', { text: cc.png }), el('td', { text: cc.doors ? Math.round(cc.face / cc.doors * 100) + '%' : '―' }))));
+        el('td', { text: nameOf(u) }), el('td', { text: cc.doors }), el('td', { text: cc.away }), el('td', { text: cc.ihng }), el('td', { text: cc.fng }), el('td', { text: cc.sng }), el('td', { text: cc.vng }), el('td', { text: cc.again }), el('td', { text: cc.got, style: cc.got ? 'color:var(--r-got);font-weight:700' : null }), el('td', { text: cc.vac }), el('td', { text: cc.png }), el('td', { text: cc.doors ? Math.round(cc.face / cc.doors * 100) + '%' : '―' }))));
     body.append(el('section', { class: 'sec' }, el('h3', { text: '担当者ごと（押すと絞り込み）' }), el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' },
-      el('thead', null, el('tr', null, ['担当', '訪問', '不在', 'ｲﾝﾀｰﾎﾝNG', '対面NG', '再訪', '獲得', '未入居', '投函NG', '対面率'].map(h => el('th', { text: h })))), tb))));
+      el('thead', null, el('tr', null, ['担当', '訪問', '不在', 'ｲﾝﾀｰﾎﾝNG', '対面NG', '差込NG', '訪問NG', '再訪', '獲得', '未入居', '投函NG', '対面率'].map(h => el('th', { text: h })))), tb))));
   }
   // NG reasons
   const why = {}; list.filter(x => x.why).forEach(x => why[x.why] = (why[x.why] || 0) + 1);
@@ -3017,7 +3057,7 @@ function dirLinks(travel){
 // ---------- panels ----------
 const NET_L = { free: '無料ネットあり', paid: '個別契約（有料）', unk: 'わからない' };
 const NET_C = { free: '#8a6d1f', paid: '#1f7a4d', unk: '#7d8b8f' };
-const PAID_NETS = ['ドコモ光', 'ソフトバンク光', 'auひかり', 'フレッツ光', 'J:COM', 'ホームルーター'];
+const PAID_NETS = ['ドコモ光', 'ソフトバンク光', 'auひかり', 'フレッツ光', 'J:COM', 'BIGLOBE', 'ホームルーター', 'その他のネット'];
 let NETO = {}; // bid -> {v, u, t}
 function netOf(b){
   const o = NETO[b.id]; if (o && o.v) return o.v === 'unk' ? { v: null, src: 'field' } : { v: o.v, src: 'field' };
@@ -3221,6 +3261,8 @@ function renderList(){
   body.append(el('div', { class: 'ctl' }, el('label', { for: 'listSort', text: '並び順' }), sel,
     cand.length ? el('button', { class: 'btn', onclick: () => { const add = cand.slice(0, 10).map(b => b.id); route.push(...add); saveRoute(); drawRouteLine(); renderList(); toast(`上から${add.length}件をルートに追加しました（合計${route.length}件）`); } }, '上から10件をルートに追加') : null));
   if (canVac()) body.append(el('button', { class: 'btn', onclick: () => openPanel('vac') }, '未入居リスト（確認が古い順）'));
+  if (arr.length) body.append(el('div', { class: 'ctl' }, el('button', { class: 'btn', onclick: () => savePins(arr.filter(b => !b.x).slice(0, 2000).map((b, i) => { const st = statOf(b); return [i + 1, b.n, b.a, b.t + '戸', '申込' + b.ap, '導入' + (b.mo || '―'), st && st.l ? '最終訪問 ' + fmtDate(st.l) + '・' + st.n + '回' : '未訪問', [b.f.includes('hanbai_ng') ? '訪販禁止' : '', b.kn.length ? '勧誘禁止:' + b.kn.join('・') : ''].filter(Boolean).join(' / '), b.id, b.la, b.lo]; }), '地図の建物') }, 'この一覧をGoogleマップ（マイマップ）用に保存'),
+    el('span', { class: 'muted', text: '保存したファイルをマイマップで読み込むと、全部の建物がGoogleマップにピンで出ます（やり方はルート画面に書いてあります）' })));
   body.append(el('div', { class: 'muted', text: '右の「＋」で1件ずつ、今日回るところに追加できます（訪販禁止の建物はまとめて追加しません）。' }));
   if (arr.length > 300) body.append(el('p', { class: 'muted', text: `先頭300棟を表示しています。地図を拡大すると絞り込めます。` }));
   const box = el('div');
@@ -3299,12 +3341,16 @@ function pinRows(){
   });
 }
 function csvCell(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
-async function savePins(){
+async function savePins(rows, label){
   const head = ['順番', '建物名', '住所', '戸数', '申込', '設備導入', '前回', '注意', '棟ID', '緯度', '経度'];
-  const csv = '\ufeff' + [head, ...pinRows()].map(r => r.map(csvCell).join(',')).join('\r\n');
-  const d = new Date(); const name = `訪問ルート_${d.getMonth() + 1}月${d.getDate()}日.csv`;
+  const csv = '\ufeff' + [head, ...(Array.isArray(rows) ? rows : pinRows())].map(r => r.map(csvCell).join(',')).join('\r\n');
+  const d = new Date(); const name = `${typeof label === 'string' ? label : '訪問ルート'}_${d.getMonth() + 1}月${d.getDate()}日.csv`;
   let dl = null; try { dl = window.claude && claude.use ? await claude.use('downloads') : null; } catch(e){}
-  if (!dl) { copyText(csv.slice(1), 'ファイルを保存できない画面のため、内容をコピーしました。メモ帳などに貼って .csv で保存してください'); return; }
+  if (!dl) {
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = name; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('ファイルを保存しました。マイマップで読み込んでください'); }
+    catch(e){ copyText(csv.slice(1), 'ファイルを保存できなかったため、内容をコピーしました。メモ帳などに貼って .csv で保存してください'); }
+    return;
+  }
   try { await dl.save({ filename: name, data: csv }); toast('ファイルを保存しました。マイマップで読み込んでください'); }
   catch(e){ if (e && e.code === 'declined') return; toast('保存できませんでした。もう一度お試しください'); }
 }
@@ -3376,7 +3422,7 @@ function prepHome(){
   }
 }
 let homeOn = true, homeCC = null, homeTown = '', homeMapCC = null;
-let homeSort = store.get('homeSort', 'addr'), homeOnlyNew = false, homeHideNG = store.get('homeHideNG', false), homeTy = store.get('homeTy', ''), homeNf = store.get('homeNf', '');
+let homeSort = store.get('homeSort', 'addr'), homeOnlyNew = false, homeHideNG = store.get('homeHideNG', false), homeTy = store.get('homeTy', ''), homeNf = store.get('homeNf', 'nofree');
 function setView(v){
   homeOn = v === 'home';
   $('#home').hidden = !homeOn;

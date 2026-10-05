@@ -11,7 +11,7 @@
  */
 const PROJECT = 'aimost-houmon-map';
 const FS = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents';
-const RES = { away: '不在', ihng: 'インターホンNG', fng: '対面NG', again: '再訪', got: '獲得', vac: '未入居', sng: '差し込みNG', png: 'ポスト投函NG' };
+const RES = { away: '不在', ihng: 'インターホンNG', fng: '対面NG', again: '再訪', got: '獲得', vac: '未入居', sng: '差し込みNG', vng: '訪問NG', png: 'ポスト投函NG' };
 const TY = { S: '単身', M: '単身・セミ', F: 'ファミリー' };
 const NET = { free: '無料ネットあり', paid: '個別契約（有料）' };
 // スプレッドシート「訪問活動記録」
@@ -169,7 +169,7 @@ function run_(todayOverride) {
 
 /** 1人1日の訪問数（訪問・対面・獲得など）を day/<日付>_<人> の v に書く（業務管理アプリの成績で使う） */
 function saveVisits_(a){
-  const v = { doors: 0, face: 0, got: 0, away: 0, ihng: 0, fng: 0, again: 0, vac: 0, sng: 0, png: 0 }; const ts = [];
+  const v = { doors: 0, face: 0, got: 0, away: 0, ihng: 0, fng: 0, again: 0, vac: 0, sng: 0, vng: 0, png: 0 }; const ts = [];
   for (const k in a.data) {
     const e = a.data[k];
     if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r]) continue;
