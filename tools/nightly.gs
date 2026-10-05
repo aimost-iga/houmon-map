@@ -136,7 +136,7 @@ function run_(todayOverride) {
     const isAway = e.r === 'away';
     rows.push([Utilities.formatDate(dt, 'Asia/Tokyo', 'yyyy/MM/dd'), Utilities.formatDate(dt, 'Asia/Tokyo', 'HH:mm'), who,
       b.p || '', b.c || '', b.a ? townOf_(b) : '', b.n || '', "'" + e.bid, isAway ? '不在まとめ' : "'" + (e.room || ''),
-      RES[e.r], ty, net, e.why || '', e.net || '', e.what || '', e.when || '', isAway ? '' : String(e.m || '').replace(/\n/g, ' '), "'" + k, e.n]);
+      RES[e.r], ty, net, (e.st ? e.st + (e.why ? '／' + e.why : '') : (e.why || '')), e.net || '', e.what || '', e.when || '', isAway ? '' : String(e.m || '').replace(/\n/g, ' '), "'" + k, e.n]);
   });
   if (rows.length) {
     const start = Math.max(sh.getLastRow(), 1) + 1;

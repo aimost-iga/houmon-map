@@ -1273,6 +1273,11 @@ details.pref .cities{padding:6px 0 8px}
 .bm-text .muted{margin-top:4px;font-size:12px}
 .here-btn{width:44px;height:44px;flex-direction:column;gap:0;font-size:10px;font-weight:700;line-height:1}
 .here-btn span{display:block;margin-top:1px;white-space:nowrap;font-size:9.5px;letter-spacing:-.02em}
+
+#multiBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(136px + env(safe-area-inset-bottom));z-index:2500;display:flex;align-items:center;gap:6px;background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:6px 8px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-weight:700;font-size:13px;white-space:nowrap;max-width:calc(100vw - 16px)}
+#multiBar .btn{padding:6px 10px;font-size:13px}
+@media (min-width:761px){#multiBar{bottom:24px}}
+.lrow.picked{background:color-mix(in srgb,var(--accent) 12%,var(--card));border-radius:8px}
 </style>
 </head>
 <body>
@@ -1363,7 +1368,9 @@ const store = {
 const DAY = 86400000;
 const RES = { away:'不在', ihng:'インターホンNG', fng:'対面NG', sng:'差し込みNG', vng:'訪問NG', again:'再訪', got:'獲得', vac:'未入居', png:'ポスト投函NG' };
 const RES_S = { away:'不在', ihng:'ｲﾝﾀｰﾎﾝNG', fng:'対面NG', sng:'差込NG', vng:'訪問NG', again:'再訪', got:'獲得', vac:'未入居', png:'投函NG' };
-const RES_ORDER = ['away', 'ihng', 'fng', 'sng', 'vng', 'again', 'got', 'vac', 'png'];
+const RES_ORDER = ['away', 'ihng', 'fng', 'again', 'got', 'vac', 'png'];
+// 対面NGの段階（どこで断られたか）
+const STAGE = ['冒頭NG', 'フルトーク前NG', 'フルトークNG'];
 // 差し込みNG・訪問NGの理由（KPIで分けて見るため）
 const SNG_WHY = ['住人に断られた', '「チラシお断り」の表示', '管理人・管理会社に止められた', 'ドアに差し込めない', 'その他'];
 const VNG_WHY = ['「訪問販売お断り」の表示', '住人に「もう来ないで」', '管理人・管理会社に止められた', 'その他'];
@@ -1481,7 +1488,7 @@ function drawMarkers(){
     let m = markers[b.id];
     if (!m) {
       m = markers[b.id] = L.circleMarker([b.la, b.lo], Object.assign({ renderer }, styleFor(b)));
-      m.on('click', () => openBuilding(b.id, false));
+      m.on('click', () => { if (pickMode && !b.x) { toggleRoute(b.id); return; } openBuilding(b.id, false); });
     } else m.setStyle(styleFor(b));
     markerLayer.addLayer(m);
   }
@@ -2712,7 +2719,7 @@ function renderSheetDynamic(){
   if (selRoom) renderRoomForm();
 }
 function detailText(x){
-  return [x.why, x.what ? '獲得：' + x.what : '', x.net ? '今のネット：' + x.net : '', x.when ? '再訪：' + x.when : '', x.m].filter(Boolean).join('　');
+  return [x.st, x.why, x.what ? '獲得：' + x.what : '', x.net ? '今のネット：' + x.net : '', x.when ? '再訪：' + x.when : '', x.m].filter(Boolean).join('　');
 }
 function logItem(x, b, showB){
   const mine = x.u && x.u === me.id && Date.now() - x.t < 3 * DAY;
@@ -2732,7 +2739,7 @@ function openRoom(r){
   if (b && b.x) { toast('リスト外の建物のため登録できません'); return; }
   selRoom = r;
   const prev = (bDoc && bDoc.rooms && bDoc.rooms[r]) || null;
-  form = { r: null, why: '', what: '', net: '', when: '', m: '' };
+  form = { r: null, st: '', why: '', what: '', net: '', when: '', m: '' };
   renderSheetDynamic();
 }
 function closeRoom(){ selRoom = null; form = null; const f = $('#rform'); if (f) f.remove(); document.querySelectorAll('.room.sel').forEach(x => x.classList.remove('sel')); }
@@ -2760,6 +2767,7 @@ function renderRoomForm(){
   const drawExtra = () => {
     extra.textContent = '';
     const k = form.r;
+    if (k === 'fng') extra.append(el('div', { class: 'flab', text: 'どこで断られたか' }), chipRow(STAGE, 'st'));
     if (k === 'fng' || k === 'ihng') { extra.append(el('div', { class: 'flab', text: '断られた理由' }), chipRow(WHY, 'why')); }
     if (k === 'sng') { extra.append(el('div', { class: 'flab', text: '差し込みNGの理由' }), chipRow(SNG_WHY, 'why'), el('div', { class: 'muted', text: 'ドアへのチラシの差し込みを断られた部屋。次から差し込まないよう残ります。' })); }
     if (k === 'vng') { extra.append(el('div', { class: 'flab', text: '訪問NGの理由' }), chipRow(VNG_WHY, 'why'), el('div', { class: 'muted', text: '「訪問しないで」と言われた・お断りの表示がある部屋。対面NG（話を聞いて断られた）とは分けて数えます。' })); }
@@ -2772,7 +2780,7 @@ function renderRoomForm(){
   };
   const resRow = el('div', { class: 'res' }, RES_ORDER.map(k => el('button', { 'data-r': k, 'aria-pressed': String(form.r === k), onclick: () => {
     if (k === 'got' && form.r !== 'got') fireworks(0);
-    form.r = k; form.why = form.what = form.when = ''; resRow.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.r === k))); drawExtra(); save.disabled = false; } }, RES[k])));
+    form.r = k; form.why = form.what = form.when = form.st = ''; resRow.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.r === k))); drawExtra(); save.disabled = false; } }, RES[k])));
   const memo = el('textarea', { id: 'memoIn', rows: 2, placeholder: 'メモ（任意）例：奥さん対応、20時以降なら在宅' });
   memo.addEventListener('input', () => form.m = memo.value);
   const save = el('button', { class: 'btn primary', style: 'justify-content:center;padding:12px', disabled: !form.r }, '登録する');
@@ -2841,7 +2849,7 @@ async function register(b, room, f){
   const t = Date.now();
   const k = t.toString(36) + Math.random().toString(36).slice(2, 6);
   const entry = { room, r: f.r, t, u: me.id || '', m: (f.m || '').trim() };
-  if (f.why) entry.why = f.why; if (f.what) entry.what = f.what; if (f.net) entry.net = f.net; if (f.when) entry.when = f.when;
+  if (f.st && f.r === 'fng') entry.st = f.st; if (f.why) entry.why = f.why; if (f.what) entry.what = f.what; if (f.net) entry.net = f.net; if (f.when) entry.when = f.when;
   if (f.r === 'away') {
     // 不在は「その日の訪問数」を数えるためだけに今日の活動記録へ入れる。建物・部屋の記録には残さない。
     try {
@@ -2967,6 +2975,9 @@ function renderAct(){
       return el('div', { class: 'kpi' + (lv ? ' g' + lv : '') }, el('b', { text: v }), el('span', { text: t }), lv ? el('span', { class: 'tag', text: GOT_MSG(v) }) : null);
     })));
   body.append(el('div', { class: 'muted', text: c.doors ? `対面率 ${Math.round(c.face / c.doors * 100)}%・対面からの獲得率 ${c.face ? Math.round(c.got / c.face * 100) : 0}%（対面＝対面NG・再訪・獲得）` : 'この期間の登録はまだありません。' }));
+  { const ng = list.filter(x => x.r === 'fng'); if (ng.length) { const by = {}; ng.forEach(x => { const k = x.st || '段階の記録なし'; by[k] = (by[k] || 0) + 1; }); const why = {}; ng.forEach(x => { if (x.why) why[x.why] = (why[x.why] || 0) + 1; });
+    body.append(el('div', { class: 'muted', style: 'margin-top:4px' }, '対面NGの内訳：', el('b', { text: [...STAGE, '段階の記録なし'].filter(k => by[k]).map(k => `${k} ${by[k]}`).join('・') }),
+      Object.keys(why).length ? el('span', { text: '　理由：' + Object.entries(why).sort((a, c2) => c2[1] - a[1]).slice(0, 4).map(([k, v]) => `${k} ${v}`).join('・') }) : null)); } }
   // 回ったマンション
   if (list.length) {
     const g = {};
@@ -2986,9 +2997,9 @@ function renderAct(){
     const tb = el('tbody');
     people.map(u => ({ u, c: tally(actEntries.filter(x => x.u === u)) })).sort((a, b2) => b2.c.doors - a.c.doors).forEach(({ u, c: cc }) => tb.append(
       el('tr', { class: actState.who === u ? 'sel' : null, onclick: () => { actState.who = actState.who === u ? '' : u; renderAct(); } },
-        el('td', { text: nameOf(u) }), el('td', { text: cc.doors }), el('td', { text: cc.away }), el('td', { text: cc.ihng }), el('td', { text: cc.fng }), el('td', { text: cc.sng }), el('td', { text: cc.vng }), el('td', { text: cc.again }), el('td', { text: cc.got, style: cc.got ? 'color:var(--r-got);font-weight:700' : null }), el('td', { text: cc.vac }), el('td', { text: cc.png }), el('td', { text: cc.doors ? Math.round(cc.face / cc.doors * 100) + '%' : '―' }))));
+        el('td', { text: nameOf(u) }), el('td', { text: cc.doors }), el('td', { text: cc.away }), el('td', { text: cc.ihng }), el('td', { text: cc.fng }), el('td', { text: cc.again }), el('td', { text: cc.got, style: cc.got ? 'color:var(--r-got);font-weight:700' : null }), el('td', { text: cc.vac }), el('td', { text: cc.png }), el('td', { text: cc.doors ? Math.round(cc.face / cc.doors * 100) + '%' : '―' }))));
     body.append(el('section', { class: 'sec' }, el('h3', { text: '担当者ごと（押すと絞り込み）' }), el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' },
-      el('thead', null, el('tr', null, ['担当', '訪問', '不在', 'ｲﾝﾀｰﾎﾝNG', '対面NG', '差込NG', '訪問NG', '再訪', '獲得', '未入居', '投函NG', '対面率'].map(h => el('th', { text: h })))), tb))));
+      el('thead', null, el('tr', null, ['担当', '訪問', '不在', 'ｲﾝﾀｰﾎﾝNG', '対面NG', '再訪', '獲得', '未入居', '投函NG', '対面率'].map(h => el('th', { text: h })))), tb))));
   }
   // NG reasons
   const why = {}; list.filter(x => x.why).forEach(x => why[x.why] = (why[x.why] || 0) + 1);
@@ -3014,9 +3025,21 @@ function drawRouteNums(){
 function saveRoute(){ store.set('route', route); $('#routeCnt').textContent = route.length; drawRouteNums(); if (panelKind === 'route') renderRoute(); if (homeOn && homeCC) renderHome(); }
 function toggleRoute(id){
   const i = route.indexOf(id);
-  if (i >= 0) route.splice(i, 1); else { route.push(id); toast('ルートに追加しました（' + route.length + '件）'); }
-  saveRoute();
+  if (i >= 0) route.splice(i, 1); else { route.push(id); if (!pickMode) toast('ルートに追加しました（' + route.length + '件）'); }
+  saveRoute(); if (pickMode) { drawRouteLine(); pickBarUpdate(); }
 }
+// まとめて選ぶ：地図の点や一覧の建物を押すだけで、今日のルートに出し入れできる
+let pickMode = false;
+function setPickMode(on){
+  pickMode = on; let bar = document.getElementById('multiBar');
+  if (on && !bar) { bar = el('div', { id: 'multiBar' }, el('span', { id: 'multiTxt' }), el('button', { class: 'btn', onclick: () => { setPickMode(false); openPanel('route'); } }, 'ルートを見る'), el('button', { class: 'btn primary', onclick: () => setPickMode(false) }, '選び終わる')); document.body.append(bar); }
+  if (!on && bar) bar.remove();
+  pickBarUpdate(); if (homeOn && homeCC) renderHome(); if (panelKind === 'list') renderList();
+  if (on) toast('建物（地図の点・一覧）を押すと、ルートに入れたり外したりできます');
+}
+function pickBarUpdate(){ const t = document.getElementById('multiTxt'); if (t) t.textContent = `まとめて選ぶ：ルート ${route.length}件`; }
+function pickBtn(){ return el('button', { class: 'btn' + (pickMode ? ' primary' : ''), onclick: () => setPickMode(!pickMode) }, pickMode ? 'まとめて選ぶを終わる' : 'まとめて選ぶ'); }
+function pickRow(row, b){ if (!pickMode || b.x) return row; const r2 = row.cloneNode(true); r2.addEventListener('click', () => toggleRoute(b.id)); return r2; }
 function dist(a, b){ const dx = (a.lo - b.lo) * Math.cos(a.la * Math.PI / 180); const dy = a.la - b.la; return dx * dx + dy * dy; }
 function optimize(){
   if (route.length < (HERE ? 2 : 3)) return;
@@ -3259,14 +3282,14 @@ function renderList(){
     [...(HERE ? [['near', '現在地から近い順']] : []), ['stale', '放置が長い順（未訪問が先）'], ['fresh', '今月の新着・変更を先に'], ['intro', '導入が新しい順'], ['units', '戸数が多い順'], ['count', '訪問回数が多い順'], ['name', '名前順']].map(([v, t]) => el('option', { value: v, selected: v === listSort }, t)));
   const cand = arr.filter(b => !route.includes(b.id) && !b.x && !b.f.includes('hanbai_ng'));
   body.append(el('div', { class: 'ctl' }, el('label', { for: 'listSort', text: '並び順' }), sel,
-    cand.length ? el('button', { class: 'btn', onclick: () => { const add = cand.slice(0, 10).map(b => b.id); route.push(...add); saveRoute(); drawRouteLine(); renderList(); toast(`上から${add.length}件をルートに追加しました（合計${route.length}件）`); } }, '上から10件をルートに追加') : null));
+    cand.length ? el('button', { class: 'btn', onclick: () => { const add = cand.slice(0, 10).map(b => b.id); route.push(...add); saveRoute(); drawRouteLine(); renderList(); toast(`上から${add.length}件をルートに追加しました（合計${route.length}件）`); } }, '上から10件をルートに追加') : null, pickBtn()));
   if (canVac()) body.append(el('button', { class: 'btn', onclick: () => openPanel('vac') }, '未入居リスト（確認が古い順）'));
   if (arr.length) body.append(el('div', { class: 'ctl' }, el('button', { class: 'btn', onclick: () => savePins(arr.filter(b => !b.x).slice(0, 2000).map((b, i) => { const st = statOf(b); return [i + 1, b.n, b.a, b.t + '戸', '申込' + b.ap, '導入' + (b.mo || '―'), st && st.l ? '最終訪問 ' + fmtDate(st.l) + '・' + st.n + '回' : '未訪問', [b.f.includes('hanbai_ng') ? '訪販禁止' : '', b.kn.length ? '勧誘禁止:' + b.kn.join('・') : ''].filter(Boolean).join(' / '), b.id, b.la, b.lo]; }), '地図の建物') }, 'この一覧をGoogleマップ（マイマップ）用に保存'),
     el('span', { class: 'muted', text: '保存したファイルをマイマップで読み込むと、全部の建物がGoogleマップにピンで出ます（やり方はルート画面に書いてあります）' })));
   body.append(el('div', { class: 'muted', text: '右の「＋」で1件ずつ、今日回るところに追加できます（訪販禁止の建物はまとめて追加しません）。' }));
   if (arr.length > 300) body.append(el('p', { class: 'muted', text: `先頭300棟を表示しています。地図を拡大すると絞り込めます。` }));
   const box = el('div');
-  arr.slice(0, 300).forEach(b => { const inR = route.includes(b.id); box.append(el('div', { class: 'lrow' }, bRow(b), el('button', { class: 'addr' + (inR ? ' on' : ''), 'aria-label': inR ? 'ルートから外す' : 'ルートに追加', title: inR ? 'ルートから外す' : 'ルートに追加', onclick: () => { toggleRoute(b.id); renderList(); } }, inR ? '✓' : '＋'))); });
+  arr.slice(0, 300).forEach(b => { const inR = route.includes(b.id); box.append(el('div', { class: 'lrow' + (pickMode && inR ? ' picked' : '') }, pickRow(bRow(b), b), el('button', { class: 'addr' + (inR ? ' on' : ''), 'aria-label': inR ? 'ルートから外す' : 'ルートに追加', title: inR ? 'ルートから外す' : 'ルートに追加', onclick: () => { toggleRoute(b.id); renderList(); } }, inR ? '✓' : '＋'))); });
   if (!arr.length) box.append(el('p', { class: 'muted', text: 'この範囲に建物はありません。' }));
   body.append(box);
 }
@@ -3530,7 +3553,7 @@ function renderCity(body){
     el('label', { class: 'chk', for: 'hOnlyNew' }, el('input', { type: 'checkbox', id: 'hOnlyNew', checked: homeOnlyNew, onchange: e => { homeOnlyNew = e.target.checked; renderHome(); } }), '未訪問だけ'),
     el('label', { class: 'chk', for: 'hHideNG' }, el('input', { type: 'checkbox', id: 'hHideNG', checked: homeHideNG, onchange: e => { homeHideNG = e.target.checked; store.set('homeHideNG', homeHideNG); renderHome(); } }), '訪販禁止を隠す')));
   body.append(el('div', { class: 'ctl' }, el('span', { class: 'muted', text: `${arr.length}棟を表示` }),
-    cand.length ? el('button', { class: 'btn', onclick: () => { const add = cand.slice(0, 10).map(b => b.id); route.push(...add); saveRoute(); drawRouteLine(); renderHome(); toast(`上から${add.length}件をルートに追加しました（合計${route.length}件）`); } }, '上から10件をルートに追加') : null));
+    cand.length ? el('button', { class: 'btn', onclick: () => { const add = cand.slice(0, 10).map(b => b.id); route.push(...add); saveRoute(); drawRouteLine(); renderHome(); toast(`上から${add.length}件をルートに追加しました（合計${route.length}件）`); } }, '上から10件をルートに追加') : null, pickBtn()));
   const box = el('div', { class: 'hlist' });
   let lastT = null;
   const pinSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
@@ -3538,7 +3561,7 @@ function renderCity(body){
     if (homeSort === 'addr' && !homeTown && b._t !== lastT && !b.x) { box.append(el('div', { class: 'twhead', text: b._t })); lastT = b._t; }
     const inR = route.includes(b.id);
     const gm = el('a', { class: 'gmap', href: gmapsLink(b), target: '_blank', rel: 'noopener', title: 'Googleマップで開く', 'aria-label': 'Googleマップで開く' }); gm.innerHTML = pinSvg;
-    box.append(el('div', { class: 'lrow' }, bRow(b, '', true), gm,
+    box.append(el('div', { class: 'lrow' + (pickMode && inR ? ' picked' : '') }, pickRow(bRow(b, '', true), b), gm,
       b.x ? el('span') : el('button', { class: 'addr' + (inR ? ' on' : ''), 'aria-label': inR ? 'ルートから外す' : 'ルートに追加', title: inR ? 'ルートから外す' : 'ルートに追加', onclick: () => { toggleRoute(b.id); renderHome(); } }, inR ? '✓' : '＋')));
   });
   if (!arr.length) box.append(el('p', { class: 'muted', text: '条件に合う建物はありません。' }));
