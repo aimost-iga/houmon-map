@@ -123,9 +123,10 @@ function run_(todayOverride) {
   Object.keys(away).forEach(k => items.push([k, away[k]]));
   items.sort((x, y) => x[1].t - y[1].t);
 
-  const rows = [];
+  const rows = [], stages = [];
   items.forEach(([k, e]) => {
     if (have.has(k)) return;
+    stages.push([e.r === 'fng' ? (e.st || '') : '']);
     const b = B[e.bid] || { p: '', c: '', a: '', n: '(リストにない建物)' };
     const dt = new Date(e.t);
     const u = e.u || '';
@@ -136,15 +137,22 @@ function run_(todayOverride) {
     const isAway = e.r === 'away';
     rows.push([Utilities.formatDate(dt, 'Asia/Tokyo', 'yyyy/MM/dd'), Utilities.formatDate(dt, 'Asia/Tokyo', 'HH:mm'), who,
       b.p || '', b.c || '', b.a ? townOf_(b) : '', b.n || '', "'" + e.bid, isAway ? '不在まとめ' : "'" + (e.room || ''),
-      RES[e.r], ty, net, (e.st ? e.st + (e.why ? '／' + e.why : '') : (e.why || '')), e.net || '', e.what || '', e.when || '', isAway ? '' : String(e.m || '').replace(/\n/g, ' '), "'" + k, e.n]);
+      RES[e.r], ty, net, e.why || '', e.net || '', e.what || '', e.when || '', isAway ? '' : String(e.m || '').replace(/\n/g, ' '), "'" + k, e.n]);
   });
   if (rows.length) {
     const start = Math.max(sh.getLastRow(), 1) + 1;
     const need = start + rows.length - 1 - sh.getMaxRows();
     if (need > 0) sh.insertRowsAfter(sh.getMaxRows(), need + 500);
     sh.getRange(start, 1, rows.length, 19).setValues(rows);
+    // U列：対面NGの段階（冒頭NG・フルトーク前NG・フルトークNG）。T列は「月」の式なので触らない
+    if (sh.getMaxColumns() < 21) sh.insertColumnsAfter(sh.getMaxColumns(), 21 - sh.getMaxColumns());
+    if (!sh.getRange(1, 21).getValue()) sh.getRange(1, 21).setValue('対面NGの段階');
+    sh.getRange(start, 21, stages.length, 1).setValues(stages);
     SpreadsheetApp.flush();
   }
+
+  // 「稼働」タブ：1日1人1行（最初と最後の登録・稼働時間・1時間あたりの件数・まとめ入力・対面NGの段階）
+  try { writeKado_(acts, names); } catch (err) { log_('稼働の書き出しに失敗：' + err.message); }
 
   // 業務管理アプリ用に、その日の訪問数を day/<日付>_<人> に残す（消す前に）
   acts.forEach(a => { try { saveVisits_(a); } catch (err) { log_('訪問数を残せなかった：' + a.id + ' ' + err.message); } });
@@ -197,7 +205,50 @@ function spanOf_(xs) {
   const real = xs.filter((x, i) => !(fast[i] || (fast[i + 1] && runAt(i + 1) >= 3)));
   let run = 0, runMax = 0, batch = 0; fast.forEach(f => { run = f ? run + 1 : 0; runMax = Math.max(runMax, run); if (f) batch++; });
   const ms = real.length ? real[real.length - 1].t - real[0].t : 0;
-  return { ms, batch, run: runMax };
+  return { ms, batch, run: runMax, t0: real.length ? real[0].t : 0, t1: real.length ? real[real.length - 1].t : 0 };
+}
+
+const KADO_HEAD = ['日付', '担当者', '最初の登録', '最後の登録', '稼働時間（分）', '訪問', '対面', '獲得', '1時間あたり訪問', '1時間あたり対面', '対面率', '獲得率（対面あたり）', 'まとめ入力の件数', '冒頭NG', 'フルトーク前NG', 'フルトークNG', '記録ID'];
+function kadoSheet_() {
+  const ss = SS_(); let sh = ss.getSheetByName('稼働');
+  if (!sh) { sh = ss.insertSheet('稼働'); sh.getRange(1, 1, 1, KADO_HEAD.length).setValues([KADO_HEAD]).setFontWeight('bold'); sh.setFrozenRows(1); }
+  return sh;
+}
+function kadoRow_(day, who, v, id) {
+  const hrs = v.span / 3600000; const per = n => hrs >= 0.25 ? Math.round(n / hrs * 10) / 10 : '';
+  const fmt = t => t ? Utilities.formatDate(new Date(t), 'Asia/Tokyo', 'HH:mm') : '';
+  return [day.slice(0, 4) + '/' + day.slice(4, 6) + '/' + day.slice(6, 8), who, fmt(v.t0), fmt(v.t1), Math.round(v.span / 60000), v.doors, v.face, v.got,
+    per(v.doors), per(v.face), v.doors ? Math.round(v.face / v.doors * 1000) / 1000 : 0, v.face ? Math.round(v.got / v.face * 1000) / 1000 : 0, v.batch || 0, v.st1 || 0, v.st2 || 0, v.st3 || 0, "'" + id];
+}
+function writeKado_(acts, names) {
+  const sh = kadoSheet_(); const n = sh.getLastRow();
+  const have = new Set(n > 1 ? sh.getRange(2, 17, n - 1, 1).getValues().map(r => String(r[0]).replace(/^'/, '')) : []);
+  const out = [];
+  acts.forEach(a => {
+    if (have.has(a.id)) return;
+    const v = { doors: 0, face: 0, got: 0, st1: 0, st2: 0, st3: 0 }; const ts = [];
+    for (const k in a.data) { const e = a.data[k];
+      if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r] || e.r === 'png') continue;
+      v.doors++; if (e.r === 'fng' || e.r === 'again' || e.r === 'got') v.face++; if (e.r === 'got') v.got++;
+      if (e.r === 'fng') { if (e.st === '冒頭NG') v.st1++; else if (e.st === 'フルトーク前NG') v.st2++; else if (e.st === 'フルトークNG') v.st3++; }
+      if (e.t) ts.push({ t: Number(e.t), b: e.bid }); }
+    if (!v.doors) return;
+    const sp = spanOf_(ts); v.span = sp.ms; v.batch = sp.batch; v.t0 = sp.t0; v.t1 = sp.t1;
+    const u = a.data.u || ''; out.push(kadoRow_(a.data.d, names[u] || u, v, a.id));
+  });
+  if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, KADO_HEAD.length).setValues(out);
+}
+/** 1回だけ：業務管理アプリ用に残してある day の記録から、過去の「稼働」を埋める（最初・最後の時刻は分からないので空） */
+function backfillKado() {
+  const names = {}; listDocs_('users').forEach(u => { names[u.id] = (u.data.name || '').trim(); });
+  const sh = kadoSheet_(); const n = sh.getLastRow();
+  const have = new Set(n > 1 ? sh.getRange(2, 17, n - 1, 1).getValues().map(r => String(r[0]).replace(/^'/, '')) : []);
+  const out = [];
+  listDocs_('day').forEach(x => { const d = x.data; const v = d.v; if (!v || !v.doors || have.has(x.id) || !d.d) return;
+    out.push(kadoRow_(d.d, names[d.u] || d.u || '', Object.assign({ span: 0 }, v, { t0: 0, t1: 0 }), x.id)); });
+  out.sort((a, b) => a[0] < b[0] ? -1 : 1);
+  if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, KADO_HEAD.length).setValues(out);
+  log_('稼働タブに過去分を ' + out.length + '行 入れました');
 }
 
 /** 試し：明日の日付として動かす（今日の分まで書き写して消す） */
