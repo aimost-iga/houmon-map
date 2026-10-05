@@ -1396,7 +1396,9 @@ let B = [], byId = {}, AREAS = null, CITY = {}; // CITY[cc] = {name, pref, layer
 let SUM = {};          // cc -> { bid: {l, n, g, r, u} }
 let db = null, user = null, me = { id: null }, canWrite = null;
 let mode = 'last';
-const S = Object.assign({ d1: 7, d2: 30, showNG: true, onlyNew: false, prefs: null, introMax: 0, showGone: true, onlyFresh: false, nf: 'nofree' }, store.get('settings', {}));
+const S = Object.assign({ d1: 7, d2: 30, showNG: true, onlyNew: false, prefs: null, introMax: 0, showGone: true, onlyFresh: false, nf: '' }, store.get('settings', {}));
+// 無料ネット物件は最初から出す（しぼりこみで外せる）。一時的に「無料ネット以外」を最初の設定にしていた分を戻す
+if (!store.get('nfMig2', false)) { if (S.nf === 'nofree') { S.nf = ''; store.set('settings', S); } if (store.get('homeNf', '') === 'nofree') store.set('homeNf', ''); store.set('nfMig2', true); }
 let route = store.get('route', []);
 let openId = null, bUnsub = null, bDoc = null, notesCache = {};
 let names = {};
@@ -3445,7 +3447,7 @@ function prepHome(){
   }
 }
 let homeOn = true, homeCC = null, homeTown = '', homeMapCC = null;
-let homeSort = store.get('homeSort', 'addr'), homeOnlyNew = false, homeHideNG = store.get('homeHideNG', false), homeTy = store.get('homeTy', ''), homeNf = store.get('homeNf', 'nofree');
+let homeSort = store.get('homeSort', 'addr'), homeOnlyNew = false, homeHideNG = store.get('homeHideNG', false), homeTy = store.get('homeTy', ''), homeNf = store.get('homeNf', '');
 function setView(v){
   homeOn = v === 'home';
   $('#home').hidden = !homeOn;
