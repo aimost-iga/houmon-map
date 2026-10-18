@@ -2930,8 +2930,11 @@ async function loadAct(){
     renderAct();
   }
 }
+// 21時〜翌5時の登録は、現場ではなく「あとからまとめて入れた記録」とみなし、活動の数字に入れない
+function isLate(t){ if (!t) return false; const h = new Date(t).getHours(); return h >= 21 || h < 5; }
 function tally(list){
-  const c = { doors: list.filter(x => !NOT_DOOR.includes(x.r)).length, bld: new Set(list.map(x => x.bid)).size, face: 0 };
+  const late = list.filter(x => isLate(x.t)).length; list = list.filter(x => !isLate(x.t));
+  const c = { late, doors: list.filter(x => !NOT_DOOR.includes(x.r)).length, bld: new Set(list.map(x => x.bid)).size, face: 0 };
   for (const k of RES_ORDER) c[k] = 0;
   for (const x of list) { if (c[x.r] != null) c[x.r]++; if (FACE.includes(x.r)) c.face++; }
   return c;
@@ -2976,6 +2979,7 @@ function renderAct(){
       const lv = t === '獲得' ? Math.min(3, v) : 0;
       return el('div', { class: 'kpi' + (lv ? ' g' + lv : '') }, el('b', { text: v }), el('span', { text: t }), lv ? el('span', { class: 'tag', text: GOT_MSG(v) }) : null);
     })));
+  if (c.late) body.append(el('div', { class: 'muted', text: `21時〜翌5時に入れた記録 ${c.late}件は、あとからの入力とみなして上の数字に入れていません（記録は残ります）。` }));
   body.append(el('div', { class: 'muted', text: c.doors ? `対面率 ${Math.round(c.face / c.doors * 100)}%・対面からの獲得率 ${c.face ? Math.round(c.got / c.face * 100) : 0}%（対面＝対面NG・再訪・獲得）` : 'この期間の登録はまだありません。' }));
   { const ng = list.filter(x => x.r === 'fng'); if (ng.length) { const by = {}; ng.forEach(x => { const k = x.st || '段階の記録なし'; by[k] = (by[k] || 0) + 1; }); const why = {}; ng.forEach(x => { if (x.why) why[x.why] = (why[x.why] || 0) + 1; });
     body.append(el('div', { class: 'muted', style: 'margin-top:4px' }, '対面NGの内訳：', el('b', { text: [...STAGE, '段階の記録なし'].filter(k => by[k]).map(k => `${k} ${by[k]}`).join('・') }),

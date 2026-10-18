@@ -81,6 +81,8 @@ function townOf_(b) {
 
 // ---------- 本体 ----------
 function ymdJst_(d) { return Utilities.formatDate(d, 'Asia/Tokyo', 'yyyyMMdd'); }
+/** 21時〜翌5時の登録は、現場ではなく「あとからまとめて入れた記録」とみなし、活動の数字に入れない */
+function isLate_(t) { if (!t) return false; const h = Number(Utilities.formatDate(new Date(Number(t)), 'Asia/Tokyo', 'H')); return h >= 21 || h < 5; }
 function ukey_(e) { return String(e || '').toLowerCase().replace(/[^a-z0-9]/g, '_'); }
 
 function nightly() {
@@ -105,7 +107,8 @@ function run_(todayOverride) {
   });
 
   const sh = SS_().getSheetByName('明細');
-  const have = new Set(keysOf_(sh));
+  const shLate = lateSheet_();
+  const have = new Set(keysOf_(sh).concat(keysOf_(shLate)));
 
   // 行を作る（不在は まとめる）
   const items = []; const away = {};
@@ -115,7 +118,7 @@ function run_(todayOverride) {
       const e = a.data[k];
       if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r]) continue;
       if (e.r === 'away') {
-        const ak = 'away_' + day + '_' + e.bid + '_' + (e.u || '');
+        const ak = 'away_' + day + '_' + e.bid + '_' + (e.u || '') + (isLate_(e.t) ? '_late' : '');
         if (!away[ak]) away[ak] = Object.assign({}, e, { n: 1 }); else { away[ak].n++; away[ak].t = Math.min(away[ak].t, e.t); }
       } else items.push([k, Object.assign({}, e, { n: 1 })]);
     }
@@ -123,10 +126,11 @@ function run_(todayOverride) {
   Object.keys(away).forEach(k => items.push([k, away[k]]));
   items.sort((x, y) => x[1].t - y[1].t);
 
-  const rows = [], stages = [];
+  const rows = [], stages = [], lateRows = [];
   items.forEach(([k, e]) => {
     if (have.has(k)) return;
-    stages.push([e.r === 'fng' ? (e.st || '') : '']);
+    const late = isLate_(e.t);
+    if (!late) stages.push([e.r === 'fng' ? (e.st || '') : '']);
     const b = B[e.bid] || { p: '', c: '', a: '', n: '(リストにない建物)' };
     const dt = new Date(e.t);
     const u = e.u || '';
@@ -135,10 +139,12 @@ function run_(todayOverride) {
     const nv = NETO[e.bid] && NETO[e.bid].v;
     const net = nv === 'unk' ? '不明' : (NET[nv || b.nf] || '不明');
     const isAway = e.r === 'away';
-    rows.push([Utilities.formatDate(dt, 'Asia/Tokyo', 'yyyy/MM/dd'), Utilities.formatDate(dt, 'Asia/Tokyo', 'HH:mm'), who,
+    (late ? lateRows : rows).push([Utilities.formatDate(dt, 'Asia/Tokyo', 'yyyy/MM/dd'), Utilities.formatDate(dt, 'Asia/Tokyo', 'HH:mm'), who,
       b.p || '', b.c || '', b.a ? townOf_(b) : '', b.n || '', "'" + e.bid, isAway ? '不在まとめ' : "'" + (e.room || ''),
-      RES[e.r], ty, net, e.why || '', e.net || '', e.what || '', e.when || '', isAway ? '' : String(e.m || '').replace(/\n/g, ' '), "'" + k, e.n]);
+      RES[e.r], ty, net, e.why || '', e.net || '', e.what || '', e.when || '', isAway ? '' : String(e.m || '').replace(/\n/g, ' '), "'" + k, e.n].concat(late ? [Utilities.formatDate(dt, 'Asia/Tokyo', 'yyyy-MM'), e.r === 'fng' ? (e.st || '') : ''] : []));
   });
+  // 21時〜翌5時の登録は「あとから入力」タブへ（明細＝分析のもとには入れない）
+  if (lateRows.length) shLate.getRange(shLate.getLastRow() + 1, 1, lateRows.length, 21).setValues(lateRows);
   if (rows.length) {
     const start = Math.max(sh.getLastRow(), 1) + 1;
     const need = start + rows.length - 1 - sh.getMaxRows();
@@ -158,21 +164,21 @@ function run_(todayOverride) {
   acts.forEach(a => { try { saveVisits_(a); } catch (err) { log_('訪問数を残せなかった：' + a.id + ' ' + err.message); } });
 
   // 確かめてから消す：その日の記録が全部「明細」に入っている日だけ
-  const have2 = new Set(keysOf_(sh));
+  const have2 = new Set(keysOf_(sh).concat(keysOf_(shLate)));
   let deleted = 0;
   acts.forEach(a => {
     const day = a.data.d; const keys = [];
     for (const k in a.data) {
       const e = a.data[k];
       if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r]) continue;
-      keys.push(e.r === 'away' ? 'away_' + day + '_' + e.bid + '_' + (e.u || '') : k);
+      keys.push(e.r === 'away' ? 'away_' + day + '_' + e.bid + '_' + (e.u || '') + (isLate_(e.t) ? '_late' : '') : k);
     }
     if (keys.every(k => have2.has(k))) {
       try { deleteDoc_('act/' + a.id, a.updateTime); deleted++; } catch (err) { log_('消せなかった（次の晩にやり直し）：' + a.id + ' ' + err.message); }
     }
   });
   const sumN = rows.reduce((s, r) => s + Number(r[18] || 0), 0);
-  log_('追記 ' + rows.length + '行（訪問 ' + sumN + '件）・アプリから消した記録 ' + deleted + '件');
+  log_('追記 ' + rows.length + '行（訪問 ' + sumN + '件）' + (lateRows.length ? '・21時以降の入力 ' + lateRows.length + '行は「あとから入力」へ' : '') + '・アプリから消した記録 ' + deleted + '件');
 }
 
 /** 1人1日の訪問数（訪問・対面・獲得など）を day/<日付>_<人> の v に書く（業務管理アプリの成績で使う） */
@@ -181,6 +187,7 @@ function saveVisits_(a){
   for (const k in a.data) {
     const e = a.data[k];
     if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r]) continue;
+    if (isLate_(e.t)) { v.late = (v.late || 0) + 1; continue; } // 21時〜翌5時のあとから入力は数えない
     v[e.r] = (v[e.r] || 0) + 1; if (e.r === 'png') continue; // ポスト投函NGは訪問数に数えない
     v.doors++;
     if (e.r === 'fng' || e.r === 'again' || e.r === 'got') v.face++;
@@ -228,7 +235,7 @@ function writeKado_(acts, names) {
     if (have.has(a.id)) return;
     const v = { doors: 0, face: 0, got: 0, st1: 0, st2: 0, st3: 0 }; const ts = [];
     for (const k in a.data) { const e = a.data[k];
-      if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r] || e.r === 'png') continue;
+      if (!e || typeof e !== 'object' || e.x || !e.bid || !RES[e.r] || e.r === 'png' || isLate_(e.t)) continue;
       v.doors++; if (e.r === 'fng' || e.r === 'again' || e.r === 'got') v.face++; if (e.r === 'got') v.got++;
       if (e.r === 'fng') { if (e.st === '冒頭NG') v.st1++; else if (e.st === 'フルトーク前NG') v.st2++; else if (e.st === 'フルトークNG') v.st3++; }
       if (e.t) ts.push({ t: Number(e.t), b: e.bid }); }
@@ -254,6 +261,11 @@ function backfillKado() {
 /** 試し：明日の日付として動かす（今日の分まで書き写して消す） */
 function testAsTomorrow() { run_(ymdJst_(new Date(Date.now() + 86400000))); }
 
+function lateSheet_() {
+  const ss = SS_(); let sh = ss.getSheetByName('あとから入力');
+  if (!sh) { sh = ss.insertSheet('あとから入力'); sh.getRange(1, 1, 1, 21).setValues([['日付', '時刻', '担当者', '都県', '市区町村', '町名', '建物名', '棟ID', '部屋', '結果', '間取り', 'ネット', '断られた理由', '今のネット', '獲得の内容', '次のタイミング', 'メモ', '記録ID', '件数', '月', '対面NGの段階']]); sh.setFrozenRows(1); }
+  return sh;
+}
 function keysOf_(sh) {
   const n = sh.getLastRow(); if (n < 2) return [];
   return sh.getRange(2, 18, n - 1, 1).getValues().map(r => String(r[0]).replace(/^'/, '')).filter(Boolean);
